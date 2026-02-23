@@ -28,7 +28,7 @@ public class IntakeSubsystem {
     }
 
     public void intakeFull() { intake.setPower(1.0); transfer.setPower(1.0); }
-    public void intakeCustom() { intake.setPower(ASlowDown); transfer.setPower(0.5); }
+    public void intakeFeed() { intake.setPower(ASlowDown); transfer.setPower(1); }
     public void intakeOff() { intake.setPower(0); transfer.setPower(0); }
 
     // FIXED: Added missing reverse method

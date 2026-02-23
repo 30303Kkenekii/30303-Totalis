@@ -159,7 +159,7 @@ public class TeleOpBlue extends LinearOpMode {
 
         if (firingActive) {
             shooter.openGate();
-            if (firingTimer.seconds() > ShooterSubsystem.gateToFeedDelay) intake.intakeCustom();
+            if (firingTimer.seconds() > ShooterSubsystem.gateToFeedDelay) intake.intakeFeed();
             if (firingTimer.seconds() > 1.0) {
                 firingActive = false;
                 shooter.closeGate();
