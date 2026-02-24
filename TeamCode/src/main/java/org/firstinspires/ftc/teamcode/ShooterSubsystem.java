@@ -19,7 +19,7 @@ public class ShooterSubsystem {
     private Servo shooterHood, shooterGate;
     private AnalogInput turretEncoderLeft;
 
-    public static double blueGoalX = 5, blueGoalY = 144, redGoalX = 144, redGoalY = 136;
+    public static double blueGoalX = 0, blueGoalY = 144, redGoalX = 144, redGoalY = 144;
     public static double turretOffsetX = -4.5, turretOffsetY = 0;
 
     // --- NEW LINEAR RPM REGRESSION ---
