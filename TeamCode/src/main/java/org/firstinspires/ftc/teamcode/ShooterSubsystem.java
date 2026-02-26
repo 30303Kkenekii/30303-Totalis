@@ -22,36 +22,29 @@ public class ShooterSubsystem {
     public static double blueGoalX = 0, blueGoalY = 144, redGoalX = 144, redGoalY = 144;
     public static double turretOffsetX = -4.5, turretOffsetY = 0;
 
-    // --- NEW LINEAR RPM REGRESSION ---
-    public static double sSlope = 5.95999;
-    public static double sIntercept = 533.71646;
+    // --- YOUR NEWEST REGRESSIONS ---
+    public static double sSlope = 5.71543, sIntercept = 601.2141;
+    public static double hSlope = 0.00483833, hIntercept = 0.214272;
+    public static double hRecoilSlope = 0;
+    public static double rpmTolerance = 50.0;
+    public boolean isFiring = false;
 
-    // --- NEW QUARTIC HOOD REGRESSION ---
-    public static double hA = -2.21341e-9;
-    public static double hB = 0.00000111483;
-    public static double hC = -0.000206224;
-    public static double hD = 0.0183896;
-    public static double hE = -0.0778329;
+    // --- AUTO VELOCITY OFFSET ---
+    public static int autoRPMOffset = 0; // Tune this in Dashboard to give Auto more power
 
-    // --- HARDWARE & PID ---
-    public static double tSlope = -5.5617977528;
-    public static int turretMin = -4000, turretMax = 4000;
-    public static double tp = 0.002, ti = 0, td = 0.00005, tf = 0;
-    public static double angleOffset = 180.0;
-    public static double gateOpenPos = 1.0, gateClosedPos = 0.0;
-    public static double gateToFeedDelay = 0.25;
-    public static boolean flywheelsEnabled = true;
-    public static double timeInAirB = 0.6, timeInAirM = 0.0012;
-
-    // Tuning Sliders
     public static int tuningRPM = 2000;
     public static double tuningHoodPos = 0.5;
     public static int tuningTurretTicks = -950;
 
+    public static double tSlope = -5.5617977528;
+    public static int turretMin = -1195, turretMax = -700;
+    public static double tp = 0.0021, ti = 0, td = 0.00008, tf = 0;
+    public static double angleOffset = 180.0, gateOpenPos = 1.0, gateClosedPos = 0.0, gateToFeedDelay = 0.4;
+
+    private boolean flywheelsActive = true;
     private double currentTargetVelocity = 0;
     public static PIDController tpidfController;
-    private double lastRawDegrees = 0;
-    private double totalUnwrappedDegrees = 0;
+    private double lastRawDegrees = 0, totalUnwrappedDegrees = 0;
 
     public ShooterSubsystem(HardwareMap hardwareMap) {
         shooterLeft = hardwareMap.get(DcMotorEx.class, "shooterLeft");
@@ -64,61 +57,71 @@ public class ShooterSubsystem {
 
         shooterLeft.setDirection(DcMotor.Direction.REVERSE);
         shooterRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        shooterLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooterRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooterLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
         turretLeft.setDirection(CRServo.Direction.FORWARD);
         turretRight.setDirection(CRServo.Direction.FORWARD);
-
         tpidfController = new PIDController(tp, ti, td);
         lastRawDegrees = (turretEncoderLeft.getVoltage() / 3.3) * 360.0;
         totalUnwrappedDegrees = lastRawDegrees;
         closeGate();
     }
 
-    public int getRegressionRPM(double distance) {
-        // y = mx + b
-        return (int) (sSlope * distance + sIntercept);
+    public void enableFlywheels() { flywheelsActive = true; }
+    public void disableFlywheels() { flywheelsActive = false; setFlywheelVelocity(0); }
+    public boolean areFlywheelsEnabled() { return flywheelsActive; }
+
+    public boolean isAtSpeed() {
+        if (currentTargetVelocity == 0 || !flywheelsActive) return false;
+        return Math.abs(shooterLeft.getVelocity() - currentTargetVelocity) < rpmTolerance;
     }
 
-    public double getRegressionHood(double d) {
-        // y = ax^4 + bx^3 + cx^2 + dx + e
-        return Range.clip(hA*Math.pow(d,4) + hB*Math.pow(d,3) + hC*Math.pow(d,2) + hD*d + hE, 0, 1);
-    }
-
-    public void setTurretPosition(int targetTicks) {
-        tpidfController.setPID(tp, ti, td);
-        int safeTarget = Range.clip(targetTicks, turretMin, turretMax);
-        double power = Range.clip(tpidfController.calculate(getTurretPos(), safeTarget) + tf, -0.7, 0.7);
-        if (Math.abs(safeTarget - getTurretPos()) < 5) power = 0;
-        turretLeft.setPower(power);
-        turretRight.setPower(power);
-    }
-
-    public void alignTurret(double x, double y, double heading, boolean blue, Telemetry telemetry, double magVel, double thetaVel, double driverOffset) {
+    // UPDATED: Added isAuto parameter to apply autoRPMOffset
+    public void alignTurret(double x, double y, double heading, boolean blue, Telemetry telemetry, double magVel, double thetaVel, double driverOffset, boolean isAuto) {
         double dist = distToGoal(x, y, blue);
         if (dist < 1) return;
 
-        currentTargetVelocity = getRegressionRPM(dist);
-        double timeInAir = timeInAirM * currentTargetVelocity - timeInAirB;
-        if (timeInAir < 0) timeInAir = 0;
+        double angleToGoalField = Math.toDegrees(Math.atan2((blue?blueGoalY:redGoalY) - (y + (turretOffsetX * Math.sin(heading) + turretOffsetY * Math.cos(heading))), (blue?blueGoalX:redGoalX) - (x + (turretOffsetX * Math.cos(heading) - turretOffsetY * Math.sin(heading)))));
+        double targetRelative = (angleToGoalField - Math.toDegrees(heading)) + angleOffset + driverOffset;
 
-        double predX = (blue ? blueGoalX : redGoalX) - (magVel * Math.cos(thetaVel)) * timeInAir;
-        double predY = (blue ? blueGoalY : redGoalY) - (magVel * Math.sin(thetaVel)) * timeInAir;
-
-        double targetRobotRelative = (Math.toDegrees(Math.atan2(predY - y, predX - x)) - Math.toDegrees(heading)) + angleOffset + driverOffset;
-        double diff = targetRobotRelative - (totalUnwrappedDegrees % 360);
+        double currentAngle = totalUnwrappedDegrees;
+        double diff = targetRelative - (currentAngle % 360);
         if (diff > 180) diff -= 360; if (diff < -180) diff += 360;
 
         setTurretPosition((int) ((totalUnwrappedDegrees + diff) * tSlope));
 
-        double finalDist = Math.hypot(predX - x, predY - y);
-        if (flywheelsEnabled) setFlywheelVelocity(getRegressionRPM(finalDist));
-        else setFlywheelVelocity(0);
+        if (flywheelsActive) {
+            int baseRPM = getRegressionRPM(dist);
+            setFlywheelVelocity(isAuto ? baseRPM + autoRPMOffset : baseRPM);
+        } else {
+            setFlywheelVelocity(0);
+        }
 
-        shooterHood.setPosition(getRegressionHood(finalDist));
+        double baseHood = getRegressionHood(dist);
+        if (isFiring) {
+            double rpmError = Math.max(0, currentTargetVelocity - shooterLeft.getVelocity());
+            shooterHood.setPosition(Range.clip(baseHood - (rpmError * hRecoilSlope), 0, 1));
+        } else {
+            shooterHood.setPosition(baseHood);
+        }
     }
 
     public void setFlywheelVelocity(int velocity) {
+        currentTargetVelocity = velocity;
         shooterLeft.setVelocity(velocity);
         shooterRight.setVelocity(velocity);
+    }
+
+    public void setTurretPosition(int targetTicks) {
+        tpidfController.setPID(tp, ti, td);
+        int currentTicks = getTurretPos();
+        int safeTarget = Range.clip(targetTicks, turretMin, turretMax);
+        double power = Range.clip(tpidfController.calculate(currentTicks, safeTarget) + tf, -0.7, 0.7);
+        if (Math.abs(safeTarget - currentTicks) < 5) power = 0;
+        turretLeft.setPower(power); turretRight.setPower(power);
     }
 
     public void setHoodPosition(double pos) { shooterHood.setPosition(Range.clip(pos, 0, 1)); }
@@ -131,9 +134,9 @@ public class ShooterSubsystem {
         totalUnwrappedDegrees += delta; lastRawDegrees = raw;
         return (int) (totalUnwrappedDegrees * tSlope);
     }
-    public double distToGoal(double x, double y, boolean blue) {
-        return Math.hypot((blue ? blueGoalX : redGoalX) - x, (blue ? blueGoalY : redGoalY) - y);
-    }
+    public int getRegressionRPM(double d) { return (int) (sSlope * d + sIntercept); }
+    public double getRegressionHood(double d) { return Range.clip(hSlope * d + hIntercept, 0, 1); }
+    public double distToGoal(double x, double y, boolean blue) { return Math.hypot((blue ? blueGoalX : redGoalX) - x, (blue ? blueGoalY : redGoalY) - y); }
     public double getCurrentVelocity() { return shooterLeft.getVelocity(); }
     public double getTargetVelocity() { return currentTargetVelocity; }
 }

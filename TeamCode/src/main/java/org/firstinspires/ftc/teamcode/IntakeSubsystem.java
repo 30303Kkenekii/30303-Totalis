@@ -10,8 +10,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class IntakeSubsystem {
     public static double ASlowDown = 1.0;
     public static double INTAKE_POWER = 1.0;
-
-    // --- STALL TUNING ---
     public static double STALL_TIMEOUT_MS = 300.0;
     public static int STALL_TICKS_THRESHOLD = 10;
 
@@ -23,19 +21,17 @@ public class IntakeSubsystem {
         intake = hardwareMap.get(DcMotorEx.class, "intake");
         transfer = hardwareMap.get(DcMotorEx.class, "transfer");
 
-        intake.setDirection(DcMotorSimple.Direction.REVERSE);
-        transfer.setDirection(DcMotorSimple.Direction.FORWARD);
+        intake.setDirection(DcMotorSimple.Direction.FORWARD);
+        transfer.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        intake.setPower(0);
+        transfer.setPower(0);
     }
 
-    public void intakeFull() { intake.setPower(1.0); transfer.setPower(1.0); }
-    public void intakeFeed() { intake.setPower(ASlowDown); transfer.setPower(1); }
+    public void intakeFull() { intake.setPower(1); transfer.setPower(1.0); }
+    public void intakeCustom() { intake.setPower(ASlowDown); transfer.setPower(ASlowDown); }
     public void intakeOff() { intake.setPower(0); transfer.setPower(0); }
-
-    // FIXED: Added missing reverse method
-    public void intakeReverse() {
-        intake.setPower(-INTAKE_POWER);
-        transfer.setPower(-INTAKE_POWER);
-    }
+    public void intakeReverse() { intake.setPower(-INTAKE_POWER); transfer.setPower(-INTAKE_POWER); }
 
     public boolean isStalled() {
         double currentPos = intake.getCurrentPosition();
