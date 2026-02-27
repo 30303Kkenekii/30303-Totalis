@@ -45,7 +45,9 @@ public class BlueMasterAuto extends OpMode {
     private final Pose gatePose = new Pose(14, 57, Math.toRadians(149.794));
 
     private final Pose secondControlPoint = new Pose(65, 50);
+    private final Pose returnSecondControlPoint = new Pose(50, 50);
     private final Pose thirdControlPoint = new Pose(65, 26);
+    private final Pose returnThirdControlPoint = new Pose(50, 26);
 
     public double shootTime = 0.6;
 
@@ -73,7 +75,7 @@ public class BlueMasterAuto extends OpMode {
                 .build();
 
         scoreSecondSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(secondSpikeMarkPose, secondControlPoint, scorePose))
+                .addPath(new BezierCurve(secondSpikeMarkPose, returnSecondControlPoint, scorePose))
                 .setLinearHeadingInterpolation(secondSpikeMarkPose.getHeading(), scorePose.getHeading())
                 .build();
 
@@ -83,7 +85,7 @@ public class BlueMasterAuto extends OpMode {
                 .build();
 
         scoreThirdSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(thirdSpikeMarkPose, thirdControlPoint, scorePose))
+                .addPath(new BezierCurve(thirdSpikeMarkPose, returnThirdControlPoint, scorePose))
                 .setLinearHeadingInterpolation(thirdSpikeMarkPose.getHeading(), scorePose.getHeading())
                 .build();
 
@@ -95,7 +97,7 @@ public class BlueMasterAuto extends OpMode {
                 .build();
 
         scoreFourthPickup = follower.pathBuilder()
-                .addPath(new BezierCurve(forthPickupPose, thirdControlPoint, scorePose))
+                .addPath(new BezierCurve(forthPickupPose, returnThirdControlPoint, scorePose))
                 .setLinearHeadingInterpolation(forthPickupPose.getHeading(), scorePose.getHeading())
                 .build();
 
