@@ -26,7 +26,7 @@ public class ShooterSubsystem {
     public static double sSlope = 5.71543, sIntercept = 601.2141;
     public static double hSlope = 0.00483833, hIntercept = 0.214272;
     public static double hRecoilSlope = 0;
-    public static double rpmTolerance = 50.0;
+    public static double rpmTolerance = 40;
     public boolean isFiring = false;
 
     // --- AUTO VELOCITY OFFSET ---

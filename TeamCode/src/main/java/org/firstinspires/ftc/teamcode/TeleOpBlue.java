@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@TeleOp(name = "TeleOp Red - FINAL MASTER", group = "Main")
+@TeleOp(name = "TeleOp Blue - FINAL MASTER", group = "Main")
 public class TeleOpBlue extends LinearOpMode {
 
     private Follower follower;
