@@ -45,9 +45,9 @@ public class BlueMasterAuto extends OpMode {
     private final Pose gatePose = new Pose(14, 57, Math.toRadians(149.794));
 
     private final Pose secondControlPoint = new Pose(65, 50);
-    private final Pose returnSecondControlPoint = new Pose(50, 50);
+    private final Pose returnSecondControlPoint = new Pose(43, 50);
     private final Pose thirdControlPoint = new Pose(65, 26);
-    private final Pose returnThirdControlPoint = new Pose(50, 26);
+    private final Pose returnThirdControlPoint = new Pose(43, 26);
 
     public double shootTime = 0.6;
 
@@ -223,7 +223,7 @@ public class BlueMasterAuto extends OpMode {
 
             case 13: // Duration Drive to 4th Pickup
                 intake.intakeFull();
-                if (pathTimer.seconds() > 4.6) { // YOUR FIX
+                if (pathTimer.seconds() > 3.7) { // YOUR FIX
                     shooter.openGate();
                     intake.intakeOff();
                     follower.followPath(scoreFourthPickup, true);
