@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.PoseStorage; // ADDED
 
 @Configurable
 @TeleOp(name = "TeleOp Red - FINAL MASTER", group = "Main")
@@ -56,7 +57,9 @@ public class TeleOpRed extends LinearOpMode {
         leftFront.setDirection(DcMotor.Direction.REVERSE);
         leftBack.setDirection(DcMotor.Direction.REVERSE);
 
-        follower.setStartingPose(new Pose(8, 8, 0));
+        // CHANGED: Pull starting pose from Storage instead of hardcoding 8,8
+        follower.setStartingPose(PoseStorage.currentPose);
+
         waitForStart();
 
         while (opModeIsActive()) {
@@ -64,12 +67,10 @@ public class TeleOpRed extends LinearOpMode {
             Pose cp = follower.getPose(); Vector vv = follower.getVelocity();
             if (cp != null) safePose = cp;
 
-            // Trim
             if (gamepad1.left_bumper && !lastLB) driverTrim += 1.0;
             if (gamepad1.right_bumper && !lastRB) driverTrim -= 1.0;
             lastLB = gamepad1.left_bumper; lastRB = gamepad1.right_bumper;
 
-            // Updates
             if (vv != null) shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), false, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
             leds.updateRPMIndicator(shooter.getCurrentVelocity(), shooter.getTargetVelocity());
 
@@ -131,7 +132,6 @@ public class TeleOpRed extends LinearOpMode {
         if (gamepad1.share || gamepad1.options) startNav(SHOOT_2_X, SHOOT_2_Y, SHOOT_2_H);
         if (gamepad1.right_stick_button) startNav(PARK_X, PARK_Y, PARK_H);
 
-        // Corrected Toggle Logic: These functions now own the state
         if (gamepad1.dpad_left) shooter.disableFlywheels();
         if (gamepad1.dpad_right) shooter.enableFlywheels();
     }
@@ -139,6 +139,6 @@ public class TeleOpRed extends LinearOpMode {
     private void startNav(double x, double y, double h) {
         mainState = MainState.AUTO_DRIVING;
         follower.followPath(follower.pathBuilder().addPath(new BezierLine(safePose, new Pose(x,y,Math.toRadians(h))))
-                .setLinearHeadingInterpolation(safePose.getHeading(), Math.toRadians(h)).build(), true);
+                .setLinearHeadingInterpolation(safePose.getHeading(), Math.toRadians(h)).build(), false);
     }
 }

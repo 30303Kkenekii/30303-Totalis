@@ -30,12 +30,17 @@ public class ShooterSubsystem {
     public boolean isFiring = false;
 
     // --- AUTO VELOCITY OFFSET ---
-    public static int autoRPMOffset = 0; // Tune this in Dashboard to give Auto more power
+    public static int autoRPMOffset = 0;
 
     public static int tuningRPM = 2000;
     public static double tuningHoodPos = 0.5;
     public static int tuningTurretTicks = -950;
 
+    // --- HOOD RANGE CLIPPING ---
+    public static double hoodMinPos = 0.0; // Configurable minimum
+    public static double hoodMaxPos = 0.8; // User requested: Prevents going above 18in
+
+    // --- TURRET & PID ---
     public static double tSlope = -5.5617977528;
     public static int turretMin = -1195, turretMax = -700;
     public static double tp = 0.0021, ti = 0, td = 0.00008, tf = 0;
@@ -79,7 +84,6 @@ public class ShooterSubsystem {
         return Math.abs(shooterLeft.getVelocity() - currentTargetVelocity) < rpmTolerance;
     }
 
-    // UPDATED: Added isAuto parameter to apply autoRPMOffset
     public void alignTurret(double x, double y, double heading, boolean blue, Telemetry telemetry, double magVel, double thetaVel, double driverOffset, boolean isAuto) {
         double dist = distToGoal(x, y, blue);
         if (dist < 1) return;
@@ -100,12 +104,14 @@ public class ShooterSubsystem {
             setFlywheelVelocity(0);
         }
 
-        double baseHood = getRegressionHood(dist);
+        double targetHoodPos = getRegressionHood(dist);
+
+        // --- DYNAMIC RECOIL & CLIPPING ---
         if (isFiring) {
             double rpmError = Math.max(0, currentTargetVelocity - shooterLeft.getVelocity());
-            shooterHood.setPosition(Range.clip(baseHood - (rpmError * hRecoilSlope), 0, 1));
+            setHoodPosition(targetHoodPos - (rpmError * hRecoilSlope));
         } else {
-            shooterHood.setPosition(baseHood);
+            setHoodPosition(targetHoodPos);
         }
     }
 
@@ -124,9 +130,14 @@ public class ShooterSubsystem {
         turretLeft.setPower(power); turretRight.setPower(power);
     }
 
-    public void setHoodPosition(double pos) { shooterHood.setPosition(Range.clip(pos, 0, 1)); }
+    // UPDATED: Now uses configurable hoodMinPos and hoodMaxPos
+    public void setHoodPosition(double pos) {
+        shooterHood.setPosition(Range.clip(pos, hoodMinPos, hoodMaxPos));
+    }
+
     public void openGate() { shooterGate.setPosition(gateOpenPos); }
     public void closeGate() { shooterGate.setPosition(gateClosedPos); }
+
     public int getTurretPos() {
         double raw = (turretEncoderLeft.getVoltage() / 3.3) * 360.0;
         double delta = raw - lastRawDegrees;
@@ -134,9 +145,19 @@ public class ShooterSubsystem {
         totalUnwrappedDegrees += delta; lastRawDegrees = raw;
         return (int) (totalUnwrappedDegrees * tSlope);
     }
+
     public int getRegressionRPM(double d) { return (int) (sSlope * d + sIntercept); }
-    public double getRegressionHood(double d) { return Range.clip(hSlope * d + hIntercept, 0, 1); }
-    public double distToGoal(double x, double y, boolean blue) { return Math.hypot((blue ? blueGoalX : redGoalX) - x, (blue ? blueGoalY : redGoalY) - y); }
+
+    // UPDATED: Regression output is also clipped by the safety limits
+    public double getRegressionHood(double d) {
+        double pos = hSlope * d + hIntercept;
+        return Range.clip(pos, hoodMinPos, hoodMaxPos);
+    }
+
+    public double distToGoal(double x, double y, boolean blue) {
+        return Math.hypot((blue ? blueGoalX : redGoalX) - x, (blue ? blueGoalY : redGoalY) - y);
+    }
+
     public double getCurrentVelocity() { return shooterLeft.getVelocity(); }
     public double getTargetVelocity() { return currentTargetVelocity; }
 }

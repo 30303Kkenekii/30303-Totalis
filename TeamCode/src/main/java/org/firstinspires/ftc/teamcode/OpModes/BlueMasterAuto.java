@@ -13,7 +13,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.LEDSubsystem;
 import org.firstinspires.ftc.teamcode.ShooterSubsystem;
+import org.firstinspires.ftc.teamcode.PoseStorage; // ADDED
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
 @Configurable
 @Autonomous(name = "BlueMasterAuto_Final_Fixed", group = "Autonomous")
 public class BlueMasterAuto extends OpMode {
@@ -30,19 +32,23 @@ public class BlueMasterAuto extends OpMode {
 
     private final Pose startPose = new Pose(23.1422, 118.595, Math.toRadians(140.1586));
     private final Pose scorePose = new Pose(55.8, 81, Math.toRadians(141));
-    private final Pose firstSpikeMarkPose = new Pose(19.5068, 81, Math.toRadians(180));
+    private final Pose firstSpikeMarkPose = new Pose(19.5745, 72.3472, Math.toRadians(180));
     private final Pose secondSpikeMarkPose = new Pose(11.3953, 53, Math.toRadians(180));
     private final Pose thirdSpikeMarkPose = new Pose(11.3953, 29, Math.toRadians(180));
 
+    private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
+    private final Pose forthPickupPose = new Pose(9, 9, Math.toRadians(-90));
+
+    private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
+
     private final Pose gatePose = new Pose(14, 57, Math.toRadians(149.794));
 
-    private final Pose lastScorePose = new Pose(56.2739, 109.3317, Math.toRadians(155.7515));
     private final Pose secondControlPoint = new Pose(65, 50);
     private final Pose thirdControlPoint = new Pose(65, 26);
 
     public double shootTime = 0.6;
 
-    private PathChain scorePreload, grabFirstSpikemark, scoreFirstSpikemark, grabSecondSpikemark, scoreSecondSpikemark, grabThirdSpikemark, scoreThirdSpikemark;
+    private PathChain scorePreload, grabFirstSpikemark, scoreFirstSpikemark, grabSecondSpikemark, scoreSecondSpikemark, grabThirdSpikemark, scoreThirdSpikemark, grabFourthPickup, scoreFourthPickup, Park;
 
     public void buildPaths() {
         scorePreload = follower.pathBuilder()
@@ -76,8 +82,22 @@ public class BlueMasterAuto extends OpMode {
                 .build();
 
         scoreThirdSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(thirdSpikeMarkPose, thirdControlPoint, lastScorePose))
-                .setLinearHeadingInterpolation(thirdSpikeMarkPose.getHeading(), lastScorePose.getHeading())
+                .addPath(new BezierCurve(thirdSpikeMarkPose, thirdControlPoint, scorePose))
+                .setLinearHeadingInterpolation(thirdSpikeMarkPose.getHeading(), scorePose.getHeading())
+                .build();
+        grabFourthPickup = follower.pathBuilder()
+                .addPath(new BezierCurve(scorePose, secondControlPoint, setUpForthPickupPose))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), setUpForthPickupPose.getHeading())
+                .addPath(new BezierLine(setUpForthPickupPose, forthPickupPose))
+                .setLinearHeadingInterpolation(setUpForthPickupPose.getHeading(), forthPickupPose.getHeading())
+                .build();
+        scoreFourthPickup = follower.pathBuilder()
+                .addPath(new BezierCurve(forthPickupPose, thirdControlPoint, scorePose))
+                .setLinearHeadingInterpolation(forthPickupPose.getHeading(), scorePose.getHeading())
+                .build();
+        Park = follower.pathBuilder()
+                .addPath(new BezierCurve(scorePose, thirdControlPoint, endPose))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), endPose.getHeading())
                 .build();
     }
 
@@ -97,7 +117,7 @@ public class BlueMasterAuto extends OpMode {
                 }
                 break;
 
-            case 2: // PRELOAD FIRE
+            case 2:
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -123,7 +143,7 @@ public class BlueMasterAuto extends OpMode {
                     setPathState(5); firingTimer.reset(); }
                 break;
 
-            case 5: // CYCLE 1 FIRE
+            case 5:
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -149,7 +169,7 @@ public class BlueMasterAuto extends OpMode {
                     setPathState(8); firingTimer.reset(); }
                 break;
 
-            case 8: // CYCLE 2 FIRE
+            case 8:
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -175,14 +195,48 @@ public class BlueMasterAuto extends OpMode {
                     setPathState(11); firingTimer.reset(); }
                 break;
 
-            case 11: // CYCLE 3 FIRE
+            case 11:
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
                     shooter.isFiring = false;
                     shooter.closeGate();
                     intake.intakeOff();
+                    follower.followPath(grabFourthPickup, false);
                     setPathState(12);
+                }
+                break;
+
+            case 12:
+                intake.intakeFull();
+                if (!follower.isBusy()) {
+                    shooter.openGate();
+                    intake.intakeOff();
+                    follower.followPath(scoreFourthPickup, true);
+                    setPathState(13); }
+                break;
+
+            case 13:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(14); firingTimer.reset(); }
+                break;
+
+            case 14:
+                shooter.isFiring = true;
+                intake.intakeCustom();
+                if (firingTimer.seconds() > shootTime) {
+                    shooter.isFiring = false;
+                    shooter.closeGate();
+                    intake.intakeOff();
+                    follower.followPath(Park, true);
+                    setPathState(15); // Progress to Logger state
+                }
+                break;
+
+            case 15: // ADDED: Final Log and Stop
+                if (!follower.isBusy()) {
+                    PoseStorage.currentPose = follower.getPose(); // Log Pose
+                    requestOpModeStop();
                 }
                 break;
         }
@@ -208,9 +262,6 @@ public class BlueMasterAuto extends OpMode {
         follower.update();
         autonomousPathUpdate();
 
-        // RUN ALIGNMENT:
-        // - driverOffset = -3.0
-        // - isAuto = true (applies autoRPMOffset)
         shooter.alignTurret(
                 follower.getPose().getX(),
                 follower.getPose().getY(),
@@ -222,9 +273,7 @@ public class BlueMasterAuto extends OpMode {
                 -4.5,
                 true
         );
-
         telemetry.addData("Path State", pathState);
-        telemetry.addData("Auto RPM Offset", ShooterSubsystem.autoRPMOffset);
         telemetry.update();
     }
 }
