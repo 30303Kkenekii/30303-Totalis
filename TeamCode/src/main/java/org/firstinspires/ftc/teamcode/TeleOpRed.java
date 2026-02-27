@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.PoseStorage; // ADDED
+import org.firstinspires.ftc.teamcode.PoseStorage;
 
 @Configurable
 @TeleOp(name = "TeleOp Red - FINAL MASTER", group = "Main")
@@ -21,6 +21,7 @@ public class TeleOpRed extends LinearOpMode {
     private ShooterSubsystem shooter;
     private IntakeSubsystem intake;
     private LEDSubsystem leds;
+    private LiftSubsystem lift; // Added Subsystem
     private DcMotorEx leftFront, leftBack, rightFront, rightBack;
 
     enum MainState { MANUAL, AUTO_DRIVING, AUTO_FIRE_SEQUENCE }
@@ -30,8 +31,10 @@ public class TeleOpRed extends LinearOpMode {
     private IntakeState intakeState = IntakeState.IDLE;
 
     private Pose safePose = new Pose(8, 8, 0);
+    private boolean flywheelsPowered = true;
     private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false;
-    private double driverTrim = 0;
+    private boolean lastUp = false, lastDown = false;
+    private double driverTrim = -5;
     private ElapsedTime firingTimer = new ElapsedTime();
     private boolean firingActive = false, autoFireSignal = false;
 
@@ -45,11 +48,13 @@ public class TeleOpRed extends LinearOpMode {
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
+        lift = new LiftSubsystem(hardwareMap); // Init Lift
 
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
+
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -57,7 +62,6 @@ public class TeleOpRed extends LinearOpMode {
         leftFront.setDirection(DcMotor.Direction.REVERSE);
         leftBack.setDirection(DcMotor.Direction.REVERSE);
 
-        // CHANGED: Pull starting pose from Storage instead of hardcoding 8,8
         follower.setStartingPose(PoseStorage.currentPose);
 
         waitForStart();
@@ -67,11 +71,27 @@ public class TeleOpRed extends LinearOpMode {
             Pose cp = follower.getPose(); Vector vv = follower.getVelocity();
             if (cp != null) safePose = cp;
 
+            // --- LIFT LOGIC (BOTH STICKS PRESSED) ---
+            if (gamepad1.left_stick_button && gamepad1.right_stick_button) {
+                lift.liftUp();
+            } else {
+                lift.stop();
+            }
+
+            // --- RPM INTERCEPT TUNING ---
+            if (gamepad1.dpad_up && !lastUp) ShooterSubsystem.sIntercept += 10;
+            if (gamepad1.dpad_down && !lastDown) ShooterSubsystem.sIntercept -= 10;
+            lastUp = gamepad1.dpad_up; lastDown = gamepad1.dpad_down;
+
+            // --- AIM TRIM ---
             if (gamepad1.left_bumper && !lastLB) driverTrim += 1.0;
             if (gamepad1.right_bumper && !lastRB) driverTrim -= 1.0;
             lastLB = gamepad1.left_bumper; lastRB = gamepad1.right_bumper;
 
-            if (vv != null) shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), false, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
+            // --- SHOOTER UPDATES ---
+            if (vv != null) {
+                shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), false, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
+            }
             leds.updateRPMIndicator(shooter.getCurrentVelocity(), shooter.getTargetVelocity());
 
             if (shooter.isAtSpeed() && !firingActive) gamepad1.rumble(0.4, 0.4, 50);
@@ -86,7 +106,8 @@ public class TeleOpRed extends LinearOpMode {
                 else { mainState = MainState.MANUAL; }
             } else if (mainState == MainState.AUTO_FIRE_SEQUENCE && !autoFireSignal && !firingActive) { mainState = MainState.MANUAL; }
 
-            telemetry.addData("Flywheels", shooter.areFlywheelsEnabled() ? "ENABLED" : "DISABLED");
+            telemetry.addData("RPM Intercept", (int)ShooterSubsystem.sIntercept);
+            telemetry.addData("Intake", intakeState);
             telemetry.update();
         }
     }
@@ -140,5 +161,10 @@ public class TeleOpRed extends LinearOpMode {
         mainState = MainState.AUTO_DRIVING;
         follower.followPath(follower.pathBuilder().addPath(new BezierLine(safePose, new Pose(x,y,Math.toRadians(h))))
                 .setLinearHeadingInterpolation(safePose.getHeading(), Math.toRadians(h)).build(), false);
+    }
+
+    private void cancelAuto() {
+        mainState = MainState.MANUAL; firingActive = false;
+        follower.breakFollowing(); shooter.closeGate();
     }
 }

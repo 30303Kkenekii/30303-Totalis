@@ -21,6 +21,7 @@ public class TeleOpBlue extends LinearOpMode {
     private ShooterSubsystem shooter;
     private IntakeSubsystem intake;
     private LEDSubsystem leds;
+    private LiftSubsystem lift;
     private DcMotorEx leftFront, leftBack, rightFront, rightBack;
 
     enum MainState { MANUAL, AUTO_DRIVING, AUTO_FIRE_SEQUENCE }
@@ -30,13 +31,12 @@ public class TeleOpBlue extends LinearOpMode {
     private IntakeState intakeState = IntakeState.IDLE;
 
     private Pose safePose = new Pose(8, 8, 0);
-    private boolean flywheelsPowered = true;
     private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false;
-    private double driverTrim = 0;
+    private boolean lastUp = false, lastDown = false;
+    private double driverTrim = -5;
     private ElapsedTime firingTimer = new ElapsedTime();
     private boolean firingActive = false, autoFireSignal = false;
 
-    // --- BLUE POSITIONS (Mirrored from Red) ---
     public static double B_SHOOT_1_X = 35, B_SHOOT_1_Y = 20, B_SHOOT_1_H = 50;
     public static double B_SHOOT_2_X = 45, B_SHOOT_2_Y = -10, B_SHOOT_2_H = 0;
     public static double B_PARK_X = 48, B_PARK_Y = 48, B_PARK_H = 90;
@@ -47,11 +47,13 @@ public class TeleOpBlue extends LinearOpMode {
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
+        lift = new LiftSubsystem(hardwareMap);
 
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
+
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -59,7 +61,6 @@ public class TeleOpBlue extends LinearOpMode {
         leftFront.setDirection(DcMotor.Direction.REVERSE);
         leftBack.setDirection(DcMotor.Direction.REVERSE);
 
-        // Pull the ending pose from the Blue Auto
         follower.setStartingPose(PoseStorage.currentPose);
 
         waitForStart();
@@ -69,12 +70,24 @@ public class TeleOpBlue extends LinearOpMode {
             Pose cp = follower.getPose(); Vector vv = follower.getVelocity();
             if (cp != null) safePose = cp;
 
-            // Trim logic
+            // --- LIFT LOGIC ---
+            if (gamepad1.left_stick_button && gamepad1.right_stick_button) {
+                lift.liftUp();
+            } else {
+                lift.stop();
+            }
+
+            // --- RPM INTERCEPT TUNING ---
+            if (gamepad1.dpad_up && !lastUp) ShooterSubsystem.sIntercept += 10;
+            if (gamepad1.dpad_down && !lastDown) ShooterSubsystem.sIntercept -= 10;
+            lastUp = gamepad1.dpad_up; lastDown = gamepad1.dpad_down;
+
+            // --- AIM TRIM ---
             if (gamepad1.left_bumper && !lastLB) driverTrim += 1.0;
             if (gamepad1.right_bumper && !lastRB) driverTrim -= 1.0;
             lastLB = gamepad1.left_bumper; lastRB = gamepad1.right_bumper;
 
-            // Updates - Parameter set to TRUE for Blue Goal
+            // Updates - blue = true
             if (vv != null) {
                 shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), true, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
             }
@@ -87,21 +100,12 @@ public class TeleOpBlue extends LinearOpMode {
             handleFiring();
             handleNav();
 
-            // Auto Path management
             if (mainState == MainState.AUTO_DRIVING && !follower.isBusy()) {
-                if (Math.hypot(safePose.getX()-B_PARK_X, safePose.getY()-B_PARK_Y) > 10) {
-                    mainState = MainState.AUTO_FIRE_SEQUENCE;
-                    autoFireSignal = true;
-                } else {
-                    mainState = MainState.MANUAL;
-                }
-            } else if (mainState == MainState.AUTO_FIRE_SEQUENCE && !autoFireSignal && !firingActive) {
-                mainState = MainState.MANUAL;
-            }
+                if (Math.hypot(safePose.getX()-B_PARK_X, safePose.getY()-B_PARK_Y) > 10) { mainState = MainState.AUTO_FIRE_SEQUENCE; autoFireSignal = true; }
+                else { mainState = MainState.MANUAL; }
+            } else if (mainState == MainState.AUTO_FIRE_SEQUENCE && !autoFireSignal && !firingActive) { mainState = MainState.MANUAL; }
 
-            telemetry.addData("Alliance", "BLUE");
-            telemetry.addData("Intake", intakeState);
-            telemetry.addData("Flywheels", shooter.areFlywheelsEnabled() ? "ON" : "OFF");
+            telemetry.addData("RPM Intercept", (int)ShooterSubsystem.sIntercept);
             telemetry.update();
         }
     }
@@ -146,7 +150,6 @@ public class TeleOpBlue extends LinearOpMode {
         if (gamepad1.start) startNav(B_SHOOT_1_X, B_SHOOT_1_Y, B_SHOOT_1_H);
         if (gamepad1.share || gamepad1.options) startNav(B_SHOOT_2_X, B_SHOOT_2_Y, B_SHOOT_2_H);
         if (gamepad1.right_stick_button) startNav(B_PARK_X, B_PARK_Y, B_PARK_H);
-
         if (gamepad1.dpad_left) shooter.disableFlywheels();
         if (gamepad1.dpad_right) shooter.enableFlywheels();
     }
