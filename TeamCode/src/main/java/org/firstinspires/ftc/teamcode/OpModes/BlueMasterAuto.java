@@ -38,7 +38,7 @@ public class BlueMasterAuto extends OpMode {
     private final Pose thirdSpikeMarkPose = new Pose(11.3953, 29, Math.toRadians(180));
 
     private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
-    private final Pose forthPickupPose = new Pose(9, 9, Math.toRadians(-90));
+    private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
 
     private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
 
