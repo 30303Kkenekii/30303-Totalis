@@ -288,6 +288,9 @@ public class BlueMasterAuto extends OpMode {
                 -5.5,
                 true
         );
+        if (follower.getPose() != null) {
+            PoseStorage.currentPose = follower.getPose();
+        }
         telemetry.addData("Path State", pathState);
         telemetry.update();
     }

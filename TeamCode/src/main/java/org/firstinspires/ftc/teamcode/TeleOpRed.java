@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -21,26 +20,18 @@ public class TeleOpRed extends LinearOpMode {
     private ShooterSubsystem shooter;
     private IntakeSubsystem intake;
     private LEDSubsystem leds;
-    private LiftSubsystem lift; // Added Subsystem
+    private LiftSubsystem lift;
     private DcMotorEx leftFront, leftBack, rightFront, rightBack;
-
-    enum MainState { MANUAL, AUTO_DRIVING, AUTO_FIRE_SEQUENCE }
-    private MainState mainState = MainState.MANUAL;
 
     enum IntakeState { IDLE, INTAKING, STALLED, EJECTING }
     private IntakeState intakeState = IntakeState.IDLE;
 
     private Pose safePose = new Pose(8, 8, 0);
     private boolean flywheelsPowered = true;
-    private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false;
-    private boolean lastUp = false, lastDown = false;
+    private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false, lastUp = false, lastDown = false;
     private double driverTrim = -5;
     private ElapsedTime firingTimer = new ElapsedTime();
-    private boolean firingActive = false, autoFireSignal = false;
-
-    public static double SHOOT_1_X = -35, SHOOT_1_Y = 20, SHOOT_1_H = 130;
-    public static double SHOOT_2_X = -45, SHOOT_2_Y = -10, SHOOT_2_H = 180;
-    public static double PARK_X = 48, PARK_Y = 48, PARK_H = 90;
+    private boolean firingActive = false;
 
     @Override
     public void runOpMode() {
@@ -48,13 +39,12 @@ public class TeleOpRed extends LinearOpMode {
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
-        lift = new LiftSubsystem(hardwareMap); // Init Lift
+        lift = new LiftSubsystem(hardwareMap);
 
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
-
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -71,14 +61,17 @@ public class TeleOpRed extends LinearOpMode {
             Pose cp = follower.getPose(); Vector vv = follower.getVelocity();
             if (cp != null) safePose = cp;
 
-            // --- LIFT LOGIC (BOTH STICKS PRESSED) ---
-            if (gamepad1.left_stick_button && gamepad1.right_stick_button) {
-                lift.liftUp();
-            } else {
-                lift.stop();
+            // --- LIFT LOGIC ---
+            if (gamepad1.left_stick_button && gamepad1.right_stick_button) lift.liftUp();
+            else lift.stop();
+
+            // --- POSE RESET (REPLACES AUTO DRIVE) ---
+            if (gamepad1.start) {
+                follower.setPose(new Pose(8, 8, 0));
+                gamepad1.rumble(500);
             }
 
-            // --- RPM INTERCEPT TUNING ---
+            // --- RPM TUNING ---
             if (gamepad1.dpad_up && !lastUp) ShooterSubsystem.sIntercept += 10;
             if (gamepad1.dpad_down && !lastDown) ShooterSubsystem.sIntercept -= 10;
             lastUp = gamepad1.dpad_up; lastDown = gamepad1.dpad_down;
@@ -88,7 +81,7 @@ public class TeleOpRed extends LinearOpMode {
             if (gamepad1.right_bumper && !lastRB) driverTrim -= 1.0;
             lastLB = gamepad1.left_bumper; lastRB = gamepad1.right_bumper;
 
-            // --- SHOOTER UPDATES ---
+            // --- SHOOTER UPDATES (isAuto = false) ---
             if (vv != null) {
                 shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), false, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
             }
@@ -99,26 +92,21 @@ public class TeleOpRed extends LinearOpMode {
             handleDrive();
             handleIntake();
             handleFiring();
-            handleNav();
 
-            if (mainState == MainState.AUTO_DRIVING && !follower.isBusy()) {
-                if (Math.hypot(safePose.getX()-PARK_X, safePose.getY()-PARK_Y) > 10) { mainState = MainState.AUTO_FIRE_SEQUENCE; autoFireSignal = true; }
-                else { mainState = MainState.MANUAL; }
-            } else if (mainState == MainState.AUTO_FIRE_SEQUENCE && !autoFireSignal && !firingActive) { mainState = MainState.MANUAL; }
+            // Flywheel Power Toggles
+            if (gamepad1.dpad_left) shooter.disableFlywheels();
+            if (gamepad1.dpad_right) shooter.enableFlywheels();
 
-            telemetry.addData("RPM Intercept", (int)ShooterSubsystem.sIntercept);
             telemetry.addData("Intake", intakeState);
             telemetry.update();
         }
     }
 
     private void handleDrive() {
-        if (mainState == MainState.MANUAL) {
-            double y = -gamepad1.right_stick_y, x = gamepad1.right_stick_x * 1.1, rx = gamepad1.left_stick_x;
-            double den = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-            leftFront.setPower((y + x + rx) / den); leftBack.setPower((y - x + rx) / den);
-            rightFront.setPower((y - x - rx) / den); rightBack.setPower((y + x - rx) / den);
-        }
+        double y = -gamepad1.right_stick_y, x = gamepad1.right_stick_x * 1.1, rx = gamepad1.left_stick_x;
+        double den = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+        leftFront.setPower((y + x + rx) / den); leftBack.setPower((y - x + rx) / den);
+        rightFront.setPower((y - x - rx) / den); rightBack.setPower((y + x - rx) / den);
     }
 
     private void handleIntake() {
@@ -136,35 +124,14 @@ public class TeleOpRed extends LinearOpMode {
     }
 
     private void handleFiring() {
-        boolean trigger = (gamepad1.a && !lastA) || (gamepad1.right_trigger > 0.5) || autoFireSignal;
-        if (trigger && !firingActive && shooter.isAtSpeed()) { firingActive = true; firingTimer.reset(); autoFireSignal = false; }
+        boolean trigger = (gamepad1.a && !lastA) || (gamepad1.right_trigger > 0.5);
+        if (trigger && !firingActive && shooter.isAtSpeed()) { firingActive = true; firingTimer.reset(); }
         lastA = gamepad1.a;
         if (firingActive) {
-            shooter.isFiring = true;
-            intake.intakeOff();
+            shooter.isFiring = true; intake.intakeOff();
             if (firingTimer.seconds() > 0.1) shooter.openGate();
             if (firingTimer.seconds() > (0.1 + ShooterSubsystem.gateToFeedDelay)) intake.intakeCustom();
             if (firingTimer.seconds() > 1.2) { firingActive = false; shooter.isFiring = false; shooter.closeGate(); intake.intakeOff(); }
         }
-    }
-
-    private void handleNav() {
-        if (gamepad1.start) startNav(SHOOT_1_X, SHOOT_1_Y, SHOOT_1_H);
-        if (gamepad1.share || gamepad1.options) startNav(SHOOT_2_X, SHOOT_2_Y, SHOOT_2_H);
-        if (gamepad1.right_stick_button) startNav(PARK_X, PARK_Y, PARK_H);
-
-        if (gamepad1.dpad_left) shooter.disableFlywheels();
-        if (gamepad1.dpad_right) shooter.enableFlywheels();
-    }
-
-    private void startNav(double x, double y, double h) {
-        mainState = MainState.AUTO_DRIVING;
-        follower.followPath(follower.pathBuilder().addPath(new BezierLine(safePose, new Pose(x,y,Math.toRadians(h))))
-                .setLinearHeadingInterpolation(safePose.getHeading(), Math.toRadians(h)).build(), false);
-    }
-
-    private void cancelAuto() {
-        mainState = MainState.MANUAL; firingActive = false;
-        follower.breakFollowing(); shooter.closeGate();
     }
 }

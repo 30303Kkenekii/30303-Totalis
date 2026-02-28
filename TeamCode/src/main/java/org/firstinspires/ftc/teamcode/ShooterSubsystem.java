@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.arcrobotics.ftclib.controller.PIDController;
+import com.arcrobotics.ftclib.controller.PIDFController;
 import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -19,37 +20,47 @@ public class ShooterSubsystem {
     private Servo shooterHood, shooterGate;
     private AnalogInput turretEncoderLeft;
 
+    // --- FIELD GOALS ---
     public static double blueGoalX = 0, blueGoalY = 144, redGoalX = 144, redGoalY = 144;
     public static double turretOffsetX = -4.5, turretOffsetY = 0;
 
-    // --- YOUR NEWEST REGRESSIONS ---
+    // --- REGRESSIONS (Linear RPM & Linear Hood) ---
     public static double sSlope = 5.71543, sIntercept = 601.2141;
-    public static double hSlope = 0.00483833, hIntercept = 0.214272;
+    public static double hSlope = 0.00215411, hIntercept = 0.361223;
     public static double hRecoilSlope = 0;
     public static double rpmTolerance = 40;
+    public static double autoRPMOffset = 0;
+
     public boolean isFiring = false;
 
-    // --- AUTO VELOCITY OFFSET ---
-    public static int autoRPMOffset = 0;
-
+    // --- TUNING SLIDERS (Required for Retune OpMode) ---
     public static int tuningRPM = 2000;
     public static double tuningHoodPos = 0.5;
     public static int tuningTurretTicks = -950;
 
-    // --- HOOD RANGE CLIPPING ---
-    public static double hoodMinPos = 0.0; // Configurable minimum
-    public static double hoodMaxPos = 0.8; // User requested: Prevents going above 18in
+    // --- SAFETY LIMITS ---
+    public static double MAX_RPM = 1250.0;
+    public static double hoodMinPos = 0.0, hoodMaxPos = 0.8;
 
-    // --- TURRET & PID ---
+    // --- PIDF CONSTANTS ---
+    public static double kP = 0.009, kI = 0.0, kD = 0, kF = 0.00052, RAMP_LIMIT = 0.05;
+    private PIDFController flywheelPIDF;
+    private double lastPower = 0;
+
+    // --- TURRET PID ---
     public static double tSlope = -5.5617977528;
     public static int turretMin = -1195, turretMax = -700;
     public static double tp = 0.0021, ti = 0, td = 0.00008, tf = 0;
     public static double angleOffset = 180.0, gateOpenPos = 1.0, gateClosedPos = 0.0, gateToFeedDelay = 0.4;
 
     private boolean flywheelsActive = true;
+    public static boolean flywheelsEnabled = true;
     private double currentTargetVelocity = 0;
     public static PIDController tpidfController;
-    private double lastRawDegrees = 0, totalUnwrappedDegrees = 0;
+
+    // --- STATIC PERSISTENCE (Prevents breakage between Auto and Tele) ---
+    private static double lastRawDegrees = -1;
+    private static double totalUnwrappedDegrees = 0;
 
     public ShooterSubsystem(HardwareMap hardwareMap) {
         shooterLeft = hardwareMap.get(DcMotorEx.class, "shooterLeft");
@@ -62,28 +73,25 @@ public class ShooterSubsystem {
 
         shooterLeft.setDirection(DcMotor.Direction.REVERSE);
         shooterRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        shooterLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        shooterRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         shooterLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         turretLeft.setDirection(CRServo.Direction.FORWARD);
         turretRight.setDirection(CRServo.Direction.FORWARD);
+
         tpidfController = new PIDController(tp, ti, td);
-        lastRawDegrees = (turretEncoderLeft.getVoltage() / 3.3) * 360.0;
-        totalUnwrappedDegrees = lastRawDegrees;
+        flywheelPIDF = new PIDFController(kP, kI, kD, kF);
+
+        // Persistent Unwrapper Init
+        double currentRaw = (turretEncoderLeft.getVoltage() / 3.3) * 360.0;
+        if (lastRawDegrees == -1) {
+            lastRawDegrees = currentRaw;
+            totalUnwrappedDegrees = currentRaw;
+        }
         closeGate();
     }
 
-    public void enableFlywheels() { flywheelsActive = true; }
-    public void disableFlywheels() { flywheelsActive = false; setFlywheelVelocity(0); }
-    public boolean areFlywheelsEnabled() { return flywheelsActive; }
-
-    public boolean isAtSpeed() {
-        if (currentTargetVelocity == 0 || !flywheelsActive) return false;
-        return Math.abs(shooterLeft.getVelocity() - currentTargetVelocity) < rpmTolerance;
-    }
-
+    // --- CORE LOGIC ---
     public void alignTurret(double x, double y, double heading, boolean blue, Telemetry telemetry, double magVel, double thetaVel, double driverOffset, boolean isAuto) {
         double dist = distToGoal(x, y, blue);
         if (dist < 1) return;
@@ -97,16 +105,14 @@ public class ShooterSubsystem {
 
         setTurretPosition((int) ((totalUnwrappedDegrees + diff) * tSlope));
 
-        if (flywheelsActive) {
+        if (flywheelsEnabled && flywheelsActive) {
             int baseRPM = getRegressionRPM(dist);
-            setFlywheelVelocity(isAuto ? baseRPM + autoRPMOffset : baseRPM);
+            setFlywheelVelocity(isAuto ? baseRPM + autoRPMOffset : baseRPM, isAuto);
         } else {
-            setFlywheelVelocity(0);
+            setFlywheelVelocity(0, isAuto);
         }
 
         double targetHoodPos = getRegressionHood(dist);
-
-        // --- DYNAMIC RECOIL & CLIPPING ---
         if (isFiring) {
             double rpmError = Math.max(0, currentTargetVelocity - shooterLeft.getVelocity());
             setHoodPosition(targetHoodPos - (rpmError * hRecoilSlope));
@@ -115,10 +121,47 @@ public class ShooterSubsystem {
         }
     }
 
+    /**
+     * Replaces multiple broken velocity methods.
+     * Handles Auto vs TeleOp PID switching automatically.
+     */
+    public void setFlywheelVelocity(double targetRPM, boolean isAuto) {
+        targetRPM = Math.min(targetRPM, MAX_RPM);
+        this.currentTargetVelocity = targetRPM;
+
+        if (targetRPM <= 0) {
+            shooterLeft.setPower(0); shooterRight.setPower(0);
+            lastPower = 0; return;
+        }
+
+        if (isAuto) {
+            // Use Firmware PID in Auto for consistency
+            if (shooterLeft.getMode() != DcMotor.RunMode.RUN_USING_ENCODER) {
+                shooterLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                shooterRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            }
+            shooterLeft.setVelocity(targetRPM);
+            shooterRight.setVelocity(targetRPM);
+        } else {
+            // Use Custom PIDF in TeleOp for recovery speed
+            if (shooterLeft.getMode() != DcMotor.RunMode.RUN_WITHOUT_ENCODER) {
+                shooterLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                shooterRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+            flywheelPIDF.setPIDF(kP, kI, kD, kF);
+            double currentVel = shooterLeft.getVelocity();
+            double pidfPower = flywheelPIDF.calculate(currentVel, targetRPM);
+            if (pidfPower > lastPower + RAMP_LIMIT) pidfPower = lastPower + RAMP_LIMIT;
+            double finalPower = Range.clip(pidfPower, 0, 1.0);
+            shooterLeft.setPower(finalPower);
+            shooterRight.setPower(finalPower);
+            lastPower = finalPower;
+        }
+    }
+
+    // --- OVERLOAD FOR RETUNE OPMODE ---
     public void setFlywheelVelocity(int velocity) {
-        currentTargetVelocity = velocity;
-        shooterLeft.setVelocity(velocity);
-        shooterRight.setVelocity(velocity);
+        setFlywheelVelocity((double)velocity, false);
     }
 
     public void setTurretPosition(int targetTicks) {
@@ -130,34 +173,26 @@ public class ShooterSubsystem {
         turretLeft.setPower(power); turretRight.setPower(power);
     }
 
-    // UPDATED: Now uses configurable hoodMinPos and hoodMaxPos
-    public void setHoodPosition(double pos) {
-        shooterHood.setPosition(Range.clip(pos, hoodMinPos, hoodMaxPos));
-    }
-
-    public void openGate() { shooterGate.setPosition(gateOpenPos); }
-    public void closeGate() { shooterGate.setPosition(gateClosedPos); }
-
     public int getTurretPos() {
-        double raw = (turretEncoderLeft.getVoltage() / 3.3) * 360.0;
-        double delta = raw - lastRawDegrees;
+        double currentRaw = (turretEncoderLeft.getVoltage() / 3.3) * 360.0;
+        double delta = currentRaw - lastRawDegrees;
         if (delta > 180) delta -= 360; else if (delta < -180) delta += 360;
-        totalUnwrappedDegrees += delta; lastRawDegrees = raw;
+        totalUnwrappedDegrees += delta;
+        lastRawDegrees = currentRaw;
         return (int) (totalUnwrappedDegrees * tSlope);
     }
 
+    // --- HELPERS ---
+    public void setHoodPosition(double pos) { shooterHood.setPosition(Range.clip(pos, hoodMinPos, hoodMaxPos)); }
+    public void openGate() { shooterGate.setPosition(gateOpenPos); }
+    public void closeGate() { shooterGate.setPosition(gateClosedPos); }
+    public void enableFlywheels() { flywheelsActive = true; flywheelsEnabled = true; }
+    public void disableFlywheels() { flywheelsActive = false; flywheelsEnabled = false; setFlywheelVelocity(0, false); }
+    public boolean areFlywheelsEnabled() { return flywheelsActive; }
+    public boolean isAtSpeed() { return Math.abs(shooterLeft.getVelocity() - currentTargetVelocity) < rpmTolerance; }
     public int getRegressionRPM(double d) { return (int) (sSlope * d + sIntercept); }
-
-    // UPDATED: Regression output is also clipped by the safety limits
-    public double getRegressionHood(double d) {
-        double pos = hSlope * d + hIntercept;
-        return Range.clip(pos, hoodMinPos, hoodMaxPos);
-    }
-
-    public double distToGoal(double x, double y, boolean blue) {
-        return Math.hypot((blue ? blueGoalX : redGoalX) - x, (blue ? blueGoalY : redGoalY) - y);
-    }
-
+    public double getRegressionHood(double d) { return Range.clip(hSlope * d + hIntercept, hoodMinPos, hoodMaxPos); }
+    public double distToGoal(double x, double y, boolean blue) { return Math.hypot((blue ? blueGoalX : redGoalX) - x, (blue ? blueGoalY : redGoalY) - y); }
     public double getCurrentVelocity() { return shooterLeft.getVelocity(); }
     public double getTargetVelocity() { return currentTargetVelocity; }
 }

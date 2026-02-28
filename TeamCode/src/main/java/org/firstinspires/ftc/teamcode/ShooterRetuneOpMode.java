@@ -116,7 +116,7 @@ public class ShooterRetuneOpMode extends OpMode {
 
         // --- 3. HARDWARE UPDATES ---
         if (vel > 0) {
-            shooter.setFlywheelVelocity(vel);
+        //    shooter.setFlywheelVelocity(vel);
         }
 
         shooter.setHoodPosition(hoodPos);
