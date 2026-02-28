@@ -146,7 +146,7 @@ public class BlueMasterAuto extends OpMode {
                 break;
 
             case 4: // Wait for 0.4s at First Pickup
-                if (gateTimer.seconds() > .4) { // YOUR FIX
+                if (gateTimer.seconds() > .8) { // YOUR FIX
                     follower.followPath(scoreFirstSpikemark, true);
                     setPathState(5);
                 }

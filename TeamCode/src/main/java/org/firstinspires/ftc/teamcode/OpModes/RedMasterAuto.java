@@ -29,32 +29,30 @@ public class RedMasterAuto extends OpMode {
     private ElapsedTime pathTimer;
     private ElapsedTime firingTimer;
     private ElapsedTime gateTimer;
+    private ElapsedTime intakeTimer;
 
     // --- COORDINATES ---
-    private final Pose startPose = new Pose(124.739, 115.6998, Math.toRadians(37.1779));
-    private final Pose scorePose = new Pose(90, 84.3, Math.toRadians(43));
-    private final Pose firstSpikeMarkPose = new Pose(127.4342, 73.6098, Math.toRadians(0));
-    private final Pose secondSpikeMarkPose = new Pose(134.1738, 56, Math.toRadians(0));
-    private final Pose thirdSpikeMarkPose = new Pose(133, 30.3274, Math.toRadians(0));
+    private final Pose startPose = new Pose(125.3233, 115.5557, Math.toRadians(37.8449));
+    private final Pose scorePose = new Pose(90, 84.3, Math.toRadians(29));
+    private final Pose firstSpikeMarkPose = new Pose(127.4342, 70, Math.toRadians(0));
+    private final Pose secondSpikeMarkPose = new Pose(136, 54, Math.toRadians(-5));
+    private final Pose thirdSpikeMarkPose = new Pose(135, 30.3274, Math.toRadians(0));
 
-    private final Pose setUpForthPickupPose = new Pose(136.3332, 44.346, Math.toRadians(-90));
-    private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-95));
+    private final Pose setUpForthPickupPose = new Pose(136.3332, 54, Math.toRadians(-90));
+    private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-85));
 
     private final Pose endPose = new Pose(118, 66, Math.toRadians(0));
 
     private final Pose gatePose = new Pose(14, 57, Math.toRadians(149.794));
 
-    private final Pose bluesecondControlPoint = new Pose(65, 55);
-    private final Pose bluereturnSecondControlPoint = new Pose(43, 50);
-    private final Pose bluethirdControlPoint = new Pose(65, 26);
-    private final Pose bluereturnThirdControlPoint = new Pose(43, 26);
+    private final Pose secondControlPoint = new Pose(80, 62);
+    private final Pose returnSecondControlPoint = new Pose(110, 55);
+    private final Pose thirdControlPoint = new Pose(80, 38);
+    private final Pose returnThirdControlPoint = new Pose(110, 36);
 
 
 
-    private final Pose secondControlPoint = bluesecondControlPoint.mirror();
-    private final Pose returnSecondControlPoint = bluereturnSecondControlPoint.mirror();
-    private final Pose thirdControlPoint = bluethirdControlPoint.mirror();
-    private final Pose returnThirdControlPoint = bluereturnThirdControlPoint.mirror();
+
 
 
     public double shootTime = 0.6;
@@ -154,7 +152,7 @@ public class RedMasterAuto extends OpMode {
                 break;
 
             case 4: // Wait for 0.4s at First Pickup
-                if (gateTimer.seconds() > .4) { // YOUR FIX
+                if (gateTimer.seconds() > .8) { // YOUR FIX
                     follower.followPath(scoreFirstSpikemark, true);
                     setPathState(5);
                 }
@@ -182,16 +180,22 @@ public class RedMasterAuto extends OpMode {
                 if (!follower.isBusy()) {
                     shooter.openGate();
                     intake.intakeOff();
+                    intakeTimer.reset();
+                    setPathState(8);
+                }
+                break;
+            case 8: // Wait for 0.5s at Second Pickup
+                if (intakeTimer.seconds() > .5) { // YOUR FIX
                     follower.followPath(scoreSecondSpikemark, true);
-                    setPathState(8); }
+                    setPathState(9);
+                }
                 break;
-
-            case 8:
+            case 9:
                 if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(9); firingTimer.reset(); }
+                    setPathState(10); firingTimer.reset(); }
                 break;
 
-            case 9: // CYCLE 2 FIRE
+            case 10: // CYCLE 2 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -199,25 +203,31 @@ public class RedMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabThirdSpikemark, true);
-                    setPathState(10);
+                    setPathState(11);
                 }
                 break;
 
-            case 10:
+            case 11:
                 intake.intakeFull();
                 if (!follower.isBusy()) {
                     shooter.openGate();
                     intake.intakeOff();
+                    intakeTimer.reset();
+                    setPathState(12);
+                }
+                break;
+            case 12: // Wait for 0.5s at Third Pickup
+                if (intakeTimer.seconds() > .5) { // YOUR FIX
                     follower.followPath(scoreThirdSpikemark, true);
-                    setPathState(11); }
+                    setPathState(13);
+                }
                 break;
-
-            case 11:
+            case 13:
                 if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(12); firingTimer.reset(); }
+                    setPathState(14); firingTimer.reset(); }
                 break;
 
-            case 12: // CYCLE 3 FIRE
+            case 14: // CYCLE 3 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -225,26 +235,26 @@ public class RedMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabFourthPickup, false);
-                    setPathState(13);
+                    setPathState(15);
                 }
                 break;
 
-            case 13: // Duration Drive to 4th Pickup
+            case 15: // Duration Drive to 4th Pickup
                 intake.intakeFull();
-                if (pathTimer.seconds() > 3.7) { // YOUR FIX
+                if (pathTimer.seconds() > 4.5) { // YOUR FIX
                     shooter.openGate();
                     intake.intakeOff();
                     follower.followPath(scoreFourthPickup, true);
-                    setPathState(14);
+                    setPathState(16);
                 }
                 break;
 
-            case 14:
+            case 16:
                 if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(15); firingTimer.reset(); }
+                    setPathState(17); firingTimer.reset(); }
                 break;
 
-            case 15: // CYCLE 4 FIRE
+            case 17: // CYCLE 4 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -252,11 +262,11 @@ public class RedMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(Park, true);
-                    setPathState(16);
+                    setPathState(18);
                 }
                 break;
 
-            case 16: // Final Log and Stop
+            case 18: // Final Log and Stop
                 if (!follower.isBusy()) {
                     PoseStorage.currentPose = follower.getPose();
                     requestOpModeStop();
@@ -272,12 +282,13 @@ public class RedMasterAuto extends OpMode {
         pathTimer = new ElapsedTime();
         firingTimer = new ElapsedTime();
         gateTimer = new ElapsedTime();
+        intakeTimer = new ElapsedTime();
         follower = Constants.createFollower(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
         follower.setStartingPose(startPose);
-        ShooterSubsystem.sIntercept = 641;
+        ShooterSubsystem.sIntercept = 655;
         buildPaths();
     }
 
@@ -293,7 +304,7 @@ public class RedMasterAuto extends OpMode {
                 telemetry,
                 follower.getVelocity().getMagnitude(),
                 follower.getVelocity().getTheta(),
-                -5.5,
+                -14,
                 true
         );
         telemetry.addData("Path State", pathState);
