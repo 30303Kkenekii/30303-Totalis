@@ -32,33 +32,24 @@ public class RedMasterAuto extends OpMode {
 
     // --- COORDINATES ---
     private final Pose startPose = new Pose(124.739, 115.6998, Math.toRadians(37.1779));
-    private final Pose bluescorePose = new Pose(57.3, 84.3, Math.toRadians(141));
-    private final Pose bluefirstSpikeMarkPose = new Pose(19.5745, 72.3472, Math.toRadians(180));
-    private final Pose bluesecondSpikeMarkPose = new Pose(12, 58, Math.toRadians(180));
-    private final Pose bluethirdSpikeMarkPose = new Pose(12, 36, Math.toRadians(180));
+    private final Pose scorePose = new Pose(90, 84.3, Math.toRadians(43));
+    private final Pose firstSpikeMarkPose = new Pose(127.4342, 73.6098, Math.toRadians(0));
+    private final Pose secondSpikeMarkPose = new Pose(134.1738, 56, Math.toRadians(0));
+    private final Pose thirdSpikeMarkPose = new Pose(133, 30.3274, Math.toRadians(0));
 
-    private final Pose bluesetUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
-    private final Pose blueforthPickupPose = new Pose(10, 10, Math.toRadians(-95));
+    private final Pose setUpForthPickupPose = new Pose(136.3332, 44.346, Math.toRadians(-90));
+    private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-95));
 
-    private final Pose blueendPose = new Pose(27, 72, Math.toRadians(180));
+    private final Pose endPose = new Pose(118, 66, Math.toRadians(0));
 
-    private final Pose bluegatePose = new Pose(14, 57, Math.toRadians(149.794));
+    private final Pose gatePose = new Pose(14, 57, Math.toRadians(149.794));
 
     private final Pose bluesecondControlPoint = new Pose(65, 55);
     private final Pose bluereturnSecondControlPoint = new Pose(43, 50);
     private final Pose bluethirdControlPoint = new Pose(65, 26);
     private final Pose bluereturnThirdControlPoint = new Pose(43, 26);
 
-    private final Pose scorePose = bluescorePose.mirror();
-    private final Pose firstSpikeMarkPose = bluefirstSpikeMarkPose.mirror();
-    private final Pose secondSpikeMarkPose = bluesecondSpikeMarkPose.mirror();
-    private final Pose thirdSpikeMarkPose = bluethirdSpikeMarkPose.mirror();
-    private final Pose setUpForthPickupPose = bluesetUpForthPickupPose.mirror();
-    private final Pose forthPickupPose = blueforthPickupPose.mirror();
 
-    private final Pose endPose = blueendPose.mirror();
-
-    private final Pose gatePose = bluegatePose.mirror();
 
     private final Pose secondControlPoint = bluesecondControlPoint.mirror();
     private final Pose returnSecondControlPoint = bluereturnSecondControlPoint.mirror();
