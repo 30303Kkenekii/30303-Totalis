@@ -31,7 +31,7 @@ public class RedMasterAuto extends OpMode {
     private ElapsedTime gateTimer;
 
     // --- COORDINATES ---
-    private final Pose bluestartPose = new Pose(23.1422, 118.595, Math.toRadians(140.1586));
+    private final Pose startPose = new Pose(124.739, 115.6998, Math.toRadians(37.1779));
     private final Pose bluescorePose = new Pose(57.3, 84.3, Math.toRadians(141));
     private final Pose bluefirstSpikeMarkPose = new Pose(19.5745, 72.3472, Math.toRadians(180));
     private final Pose bluesecondSpikeMarkPose = new Pose(12, 58, Math.toRadians(180));
@@ -49,7 +49,6 @@ public class RedMasterAuto extends OpMode {
     private final Pose bluethirdControlPoint = new Pose(65, 26);
     private final Pose bluereturnThirdControlPoint = new Pose(43, 26);
 
-    private final Pose startPose = bluestartPose.mirror();
     private final Pose scorePose = bluescorePose.mirror();
     private final Pose firstSpikeMarkPose = bluefirstSpikeMarkPose.mirror();
     private final Pose secondSpikeMarkPose = bluesecondSpikeMarkPose.mirror();
