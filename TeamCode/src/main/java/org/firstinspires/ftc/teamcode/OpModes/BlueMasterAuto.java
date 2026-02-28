@@ -32,10 +32,10 @@ public class BlueMasterAuto extends OpMode {
 
     // --- COORDINATES ---
     private final Pose startPose = new Pose(23.1422, 118.595, Math.toRadians(140.1586));
-    private final Pose scorePose = new Pose(55.8, 81, Math.toRadians(141));
+    private final Pose scorePose = new Pose(57.3, 84.3, Math.toRadians(141));
     private final Pose firstSpikeMarkPose = new Pose(19.5745, 72.3472, Math.toRadians(180));
-    private final Pose secondSpikeMarkPose = new Pose(11.3953, 55, Math.toRadians(180));
-    private final Pose thirdSpikeMarkPose = new Pose(11.3953, 31, Math.toRadians(180));
+    private final Pose secondSpikeMarkPose = new Pose(12, 58, Math.toRadians(180));
+    private final Pose thirdSpikeMarkPose = new Pose(12, 36, Math.toRadians(180));
 
     private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
@@ -44,7 +44,7 @@ public class BlueMasterAuto extends OpMode {
 
     private final Pose gatePose = new Pose(14, 57, Math.toRadians(149.794));
 
-    private final Pose secondControlPoint = new Pose(65, 50);
+    private final Pose secondControlPoint = new Pose(65, 55);
     private final Pose returnSecondControlPoint = new Pose(43, 50);
     private final Pose thirdControlPoint = new Pose(65, 26);
     private final Pose returnThirdControlPoint = new Pose(43, 26);
@@ -269,6 +269,7 @@ public class BlueMasterAuto extends OpMode {
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
         follower.setStartingPose(startPose);
+        ShooterSubsystem.sIntercept = 641;
         buildPaths();
     }
 
@@ -276,7 +277,6 @@ public class BlueMasterAuto extends OpMode {
     public void loop() {
         follower.update();
         autonomousPathUpdate();
-
         shooter.alignTurret(
                 follower.getPose().getX(),
                 follower.getPose().getY(),
@@ -285,7 +285,7 @@ public class BlueMasterAuto extends OpMode {
                 telemetry,
                 follower.getVelocity().getMagnitude(),
                 follower.getVelocity().getTheta(),
-                -4.5,
+                -5.5,
                 true
         );
         telemetry.addData("Path State", pathState);
