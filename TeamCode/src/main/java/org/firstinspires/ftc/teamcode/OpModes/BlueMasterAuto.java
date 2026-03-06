@@ -29,6 +29,8 @@ public class BlueMasterAuto extends OpMode {
     private ElapsedTime pathTimer;
     private ElapsedTime firingTimer;
     private ElapsedTime gateTimer;
+    private ElapsedTime gateOpenTimer;
+
 
     // --- COORDINATES ---
     private final Pose startPose = new Pose(23.1422, 118.595, Math.toRadians(140.1586));
@@ -110,20 +112,28 @@ public class BlueMasterAuto extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                intake.intakeOff();
+                gateOpenTimer.reset();
                 shooter.openGate();
+                intake.intakeOff();
                 shooter.enableFlywheels();
                 follower.followPath(scorePreload);
                 setPathState(1);
                 break;
 
             case 1:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(2); firingTimer.reset();
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
+                    setPathState(2);
                 }
                 break;
 
-            case 2: // PRELOAD FIRE
+            case 2:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(3); firingTimer.reset();
+                }
+                break;
+
+            case 3: // PRELOAD FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -131,33 +141,40 @@ public class BlueMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabFirstSpikemark, true);
-                    setPathState(3);
-                }
-                break;
-
-            case 3: // Arrival at First Pickup
-                intake.intakeFull();
-                if (!follower.isBusy()) {
-                    shooter.openGate();
-                    intake.intakeOff();
-                    gateTimer.reset(); // YOUR FIX
                     setPathState(4);
                 }
                 break;
 
-            case 4: // Wait for 0.4s at First Pickup
-                if (gateTimer.seconds() > .8) { // YOUR FIX
-                    follower.followPath(scoreFirstSpikemark, true);
+            case 4: // Arrival at First Pickup
+                intake.intakeFull();
+                if (!follower.isBusy()) {
+                    gateOpenTimer.reset();
+                    intake.intakeOff();
+                    gateTimer.reset(); // YOUR FIX
                     setPathState(5);
                 }
                 break;
 
             case 5:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(6); firingTimer.reset(); }
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
+                    setPathState(6);
+                }
                 break;
 
-            case 6: // CYCLE 1 FIRE
+            case 6: // Wait for 0.4s at First Pickup
+                if (gateTimer.seconds() > .8) { // YOUR FIX
+                    follower.followPath(scoreFirstSpikemark, true);
+                    setPathState(7);
+                }
+                break;
+
+            case 7:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(8); firingTimer.reset(); }
+                break;
+
+            case 8: // CYCLE 1 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -165,43 +182,24 @@ public class BlueMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabSecondSpikemark, true);
-                    setPathState(7);
+                    setPathState(9);
                 }
                 break;
 
-            case 7:
+            case 9:
                 intake.intakeFull();
                 if (!follower.isBusy()) {
-                    shooter.openGate();
+                    gateOpenTimer.reset();
                     intake.intakeOff();
                     follower.followPath(scoreSecondSpikemark, true);
-                    setPathState(8); }
-                break;
-
-            case 8:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(9); firingTimer.reset(); }
-                break;
-
-            case 9: // CYCLE 2 FIRE
-                shooter.isFiring = true;
-                intake.intakeCustom();
-                if (firingTimer.seconds() > shootTime) {
-                    shooter.isFiring = false;
-                    shooter.closeGate();
-                    intake.intakeOff();
-                    follower.followPath(grabThirdSpikemark, true);
-                    setPathState(10);
-                }
+                    setPathState(10); }
                 break;
 
             case 10:
-                intake.intakeFull();
-                if (!follower.isBusy()) {
+                if (gateOpenTimer.seconds() > .3) {
                     shooter.openGate();
-                    intake.intakeOff();
-                    follower.followPath(scoreThirdSpikemark, true);
-                    setPathState(11); }
+                    setPathState(11);
+                }
                 break;
 
             case 11:
@@ -209,7 +207,40 @@ public class BlueMasterAuto extends OpMode {
                     setPathState(12); firingTimer.reset(); }
                 break;
 
-            case 12: // CYCLE 3 FIRE
+            case 12: // CYCLE 2 FIRE
+                shooter.isFiring = true;
+                intake.intakeCustom();
+                if (firingTimer.seconds() > shootTime) {
+                    shooter.isFiring = false;
+                    shooter.closeGate();
+                    intake.intakeOff();
+                    follower.followPath(grabThirdSpikemark, true);
+                    setPathState(13);
+                }
+                break;
+
+            case 13:
+                intake.intakeFull();
+                if (!follower.isBusy()) {
+                    gateOpenTimer.reset();
+                    intake.intakeOff();
+                    follower.followPath(scoreThirdSpikemark, true);
+                    setPathState(14); }
+                break;
+
+            case 14:
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
+                    setPathState(15);
+                }
+                break;
+
+            case 15:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(16); firingTimer.reset(); }
+                break;
+
+            case 16: // CYCLE 3 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -217,26 +248,34 @@ public class BlueMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabFourthPickup, false);
-                    setPathState(13);
+                    pathTimer.reset();
+                    setPathState(17);
                 }
                 break;
 
-            case 13: // Duration Drive to 4th Pickup
+            case 17: // Duration Drive to 4th Pickup
                 intake.intakeFull();
                 if (pathTimer.seconds() > 3.7) { // YOUR FIX
-                    shooter.openGate();
+                    gateOpenTimer.reset();
                     intake.intakeOff();
                     follower.followPath(scoreFourthPickup, true);
-                    setPathState(14);
+                    setPathState(18);
                 }
                 break;
 
-            case 14:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(15); firingTimer.reset(); }
+            case 18:
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
+                    setPathState(19);
+                }
                 break;
 
-            case 15: // CYCLE 4 FIRE
+            case 19:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(20); firingTimer.reset(); }
+                break;
+
+            case 20: // CYCLE 4 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -244,11 +283,11 @@ public class BlueMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(Park, true);
-                    setPathState(16);
+                    setPathState(21);
                 }
                 break;
 
-            case 16: // Final Log and Stop
+            case 21: // Final Log and Stop
                 if (!follower.isBusy()) {
                     PoseStorage.currentPose = follower.getPose();
                     requestOpModeStop();
@@ -264,12 +303,12 @@ public class BlueMasterAuto extends OpMode {
         pathTimer = new ElapsedTime();
         firingTimer = new ElapsedTime();
         gateTimer = new ElapsedTime();
+        gateOpenTimer = new ElapsedTime();
         follower = Constants.createFollower(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
         follower.setStartingPose(startPose);
-        ShooterSubsystem.sIntercept = 641;
         buildPaths();
     }
 
@@ -286,7 +325,7 @@ public class BlueMasterAuto extends OpMode {
                 follower.getVelocity().getMagnitude(),
                 follower.getVelocity().getTheta(),
                 -5.5,
-                true
+                false
         );
         if (follower.getPose() != null) {
             PoseStorage.currentPose = follower.getPose();

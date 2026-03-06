@@ -10,10 +10,9 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.PoseStorage;
 
 @Configurable
-@TeleOp(name = "TeleOp Blue - FINAL MASTER", group = "Main")
+@TeleOp(name = "TeleOp Blue - MASTER", group = "Main")
 public class TeleOpBlue extends LinearOpMode {
 
     private Follower follower;
@@ -26,7 +25,7 @@ public class TeleOpBlue extends LinearOpMode {
     enum IntakeState { IDLE, INTAKING, STALLED, EJECTING }
     private IntakeState intakeState = IntakeState.IDLE;
 
-    private Pose safePose = new Pose(136, 136, Math.toRadians(180));
+    private Pose safePose = new Pose(0, 0, 0);
     private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false, lastUp = false, lastDown = false;
     private double driverTrim = -5;
     private ElapsedTime firingTimer = new ElapsedTime();
@@ -52,7 +51,6 @@ public class TeleOpBlue extends LinearOpMode {
         leftBack.setDirection(DcMotor.Direction.REVERSE);
 
         follower.setStartingPose(PoseStorage.currentPose);
-
         waitForStart();
 
         while (opModeIsActive()) {
@@ -63,23 +61,21 @@ public class TeleOpBlue extends LinearOpMode {
             if (gamepad1.left_stick_button && gamepad1.right_stick_button) lift.liftUp();
             else lift.stop();
 
-            // --- BLUE POSE RESET ---
             if (gamepad1.start) {
-                follower.setPose(new Pose(136, 136, Math.toRadians(180)));
+                follower.setPose(new Pose(0, 0, 0));
                 gamepad1.rumble(500);
             }
+
+            if (gamepad1.dpad_up && !lastUp) ShooterSubsystem.sE += 10;
+            if (gamepad1.dpad_down && !lastDown) ShooterSubsystem.sE -= 10;
+            lastUp = gamepad1.dpad_up; lastDown = gamepad1.dpad_down;
 
             if (gamepad1.left_bumper && !lastLB) driverTrim += 1.0;
             if (gamepad1.right_bumper && !lastRB) driverTrim -= 1.0;
             lastLB = gamepad1.left_bumper; lastRB = gamepad1.right_bumper;
 
-            if (vv != null) {
-                // TRUE for Blue Goal, isAuto = FALSE
-                shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), true, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
-            }
+            if (vv != null) shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), true, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
             leds.updateRPMIndicator(shooter.getCurrentVelocity(), shooter.getTargetVelocity());
-
-            if (shooter.isAtSpeed() && !firingActive) gamepad1.rumble(0.4, 0.4, 50);
 
             handleDrive();
             handleIntake();
@@ -87,7 +83,6 @@ public class TeleOpBlue extends LinearOpMode {
 
             if (gamepad1.dpad_left) shooter.disableFlywheels();
             if (gamepad1.dpad_right) shooter.enableFlywheels();
-
             telemetry.update();
         }
     }
@@ -103,13 +98,13 @@ public class TeleOpBlue extends LinearOpMode {
         if (gamepad1.x && !lastX) intakeState = (intakeState == IntakeState.INTAKING) ? IntakeState.IDLE : IntakeState.INTAKING;
         if (gamepad1.y && !lastY) intakeState = (intakeState == IntakeState.EJECTING) ? IntakeState.IDLE : IntakeState.EJECTING;
         lastX = gamepad1.x; lastY = gamepad1.y;
-        if (gamepad1.b || firingActive) intakeState = IntakeState.IDLE;
+        if (gamepad1.b) intakeState = IntakeState.IDLE;
 
         switch (intakeState) {
             case IDLE: if (gamepad1.left_trigger > 0.1) intake.intakeReverse(); else if (!firingActive) intake.intakeOff(); break;
             case INTAKING: intake.intakeFull(); if (intake.isStalled()) intakeState = IntakeState.STALLED; break;
             case EJECTING: intake.intakeReverse(); break;
-            case STALLED: intake.intakeOff(); gamepad1.rumble(50); break;
+            case STALLED: intake.intakeOff(); break;
         }
     }
 
@@ -117,11 +112,20 @@ public class TeleOpBlue extends LinearOpMode {
         boolean trigger = (gamepad1.a && !lastA) || (gamepad1.right_trigger > 0.5);
         if (trigger && !firingActive && shooter.isAtSpeed()) { firingActive = true; firingTimer.reset(); }
         lastA = gamepad1.a;
+
         if (firingActive) {
-            shooter.isFiring = true; intake.intakeOff();
-            if (firingTimer.seconds() > 0.1) shooter.openGate();
-            if (firingTimer.seconds() > (0.1 + ShooterSubsystem.gateToFeedDelay)) intake.intakeCustom();
-            if (firingTimer.seconds() > 1.2) { firingActive = false; shooter.isFiring = false; shooter.closeGate(); intake.intakeOff(); }
+            shooter.isFiring = true;
+            if (firingTimer.seconds() < 0) intake.intakeOff();
+            if (firingTimer.seconds() > 0.3) shooter.openGate();
+            if (firingTimer.seconds() > (0.3 + ShooterSubsystem.gateToFeedDelay)) intake.intakeCustom();
+
+            if (firingTimer.seconds() > 1.2) {
+                shooter.closeGate(); shooter.isFiring = false;
+                if (firingTimer.seconds() > (1.2 + ShooterSubsystem.gateToFeedDelay)) {
+                    firingActive = false;
+                    intakeState = IntakeState.INTAKING;
+                }
+            }
         }
     }
 }

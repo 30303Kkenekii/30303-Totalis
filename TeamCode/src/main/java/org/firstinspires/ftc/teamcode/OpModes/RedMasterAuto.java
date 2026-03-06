@@ -30,6 +30,7 @@ public class RedMasterAuto extends OpMode {
     private ElapsedTime firingTimer;
     private ElapsedTime gateTimer;
     private ElapsedTime intakeTimer;
+    private ElapsedTime gateOpenTimer;
 
     // --- COORDINATES ---
     private final Pose startPose = new Pose(125.3233, 115.5557, Math.toRadians(37.8449));
@@ -144,26 +145,33 @@ public class RedMasterAuto extends OpMode {
             case 3: // Arrival at First Pickup
                 intake.intakeFull();
                 if (!follower.isBusy()) {
-                    shooter.openGate();
+                    gateOpenTimer.reset();
                     intake.intakeOff();
                     gateTimer.reset(); // YOUR FIX
                     setPathState(4);
                 }
                 break;
 
-            case 4: // Wait for 0.4s at First Pickup
-                if (gateTimer.seconds() > .8) { // YOUR FIX
-                    follower.followPath(scoreFirstSpikemark, true);
+            case 4:
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
                     setPathState(5);
                 }
                 break;
 
-            case 5:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(6); firingTimer.reset(); }
+            case 5: // Wait for 0.4s at First Pickup
+                if (gateTimer.seconds() > .8) { // YOUR FIX
+                    follower.followPath(scoreFirstSpikemark, true);
+                    setPathState(6);
+                }
                 break;
 
-            case 6: // CYCLE 1 FIRE
+            case 6:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(7); firingTimer.reset(); }
+                break;
+
+            case 7: // CYCLE 1 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -171,31 +179,39 @@ public class RedMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabSecondSpikemark, true);
-                    setPathState(7);
-                }
-                break;
-
-            case 7:
-                intake.intakeFull();
-                if (!follower.isBusy()) {
-                    shooter.openGate();
-                    intake.intakeOff();
-                    intakeTimer.reset();
                     setPathState(8);
                 }
                 break;
-            case 8: // Wait for 0.5s at Second Pickup
-                if (intakeTimer.seconds() > .5) { // YOUR FIX
-                    follower.followPath(scoreSecondSpikemark, true);
+
+            case 8:
+                intake.intakeFull();
+                if (!follower.isBusy()) {
+                    gateOpenTimer.reset();
+                    intake.intakeOff();
+                    intakeTimer.reset();
                     setPathState(9);
                 }
                 break;
+
             case 9:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(10); firingTimer.reset(); }
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
+                    setPathState(10);
+                }
                 break;
 
-            case 10: // CYCLE 2 FIRE
+            case 10: // Wait for 0.5s at Second Pickup
+                if (intakeTimer.seconds() > .5) { // YOUR FIX
+                    follower.followPath(scoreSecondSpikemark, true);
+                    setPathState(11);
+                }
+                break;
+            case 11:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(12); firingTimer.reset(); }
+                break;
+
+            case 12: // CYCLE 2 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -203,31 +219,39 @@ public class RedMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabThirdSpikemark, true);
-                    setPathState(11);
-                }
-                break;
-
-            case 11:
-                intake.intakeFull();
-                if (!follower.isBusy()) {
-                    shooter.openGate();
-                    intake.intakeOff();
-                    intakeTimer.reset();
-                    setPathState(12);
-                }
-                break;
-            case 12: // Wait for 0.5s at Third Pickup
-                if (intakeTimer.seconds() > .5) { // YOUR FIX
-                    follower.followPath(scoreThirdSpikemark, true);
                     setPathState(13);
                 }
                 break;
+
             case 13:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(14); firingTimer.reset(); }
+                intake.intakeFull();
+                if (!follower.isBusy()) {
+                    gateOpenTimer.reset();
+                    intake.intakeOff();
+                    intakeTimer.reset();
+                    setPathState(14);
+                }
                 break;
 
-            case 14: // CYCLE 3 FIRE
+            case 14:
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
+                    setPathState(15);
+                }
+                break;
+
+            case 15: // Wait for 0.5s at Third Pickup
+                if (intakeTimer.seconds() > .5) { // YOUR FIX
+                    follower.followPath(scoreThirdSpikemark, true);
+                    setPathState(16);
+                }
+                break;
+            case 16:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(17); firingTimer.reset(); }
+                break;
+
+            case 17: // CYCLE 3 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -235,26 +259,33 @@ public class RedMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(grabFourthPickup, false);
-                    setPathState(15);
+                    setPathState(18);
                 }
                 break;
 
-            case 15: // Duration Drive to 4th Pickup
+            case 18: // Duration Drive to 4th Pickup
                 intake.intakeFull();
                 if (pathTimer.seconds() > 4.5) { // YOUR FIX
-                    shooter.openGate();
+                    gateOpenTimer.reset();
                     intake.intakeOff();
                     follower.followPath(scoreFourthPickup, true);
-                    setPathState(16);
+                    setPathState(19);
                 }
                 break;
 
-            case 16:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(17); firingTimer.reset(); }
+            case 19:
+                if (gateOpenTimer.seconds() > .3) {
+                    shooter.openGate();
+                    setPathState(20);
+                }
                 break;
 
-            case 17: // CYCLE 4 FIRE
+            case 20:
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    setPathState(21); firingTimer.reset(); }
+                break;
+
+            case 21: // CYCLE 4 FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
@@ -262,11 +293,11 @@ public class RedMasterAuto extends OpMode {
                     shooter.closeGate();
                     intake.intakeOff();
                     follower.followPath(Park, true);
-                    setPathState(18);
+                    setPathState(22);
                 }
                 break;
 
-            case 18: // Final Log and Stop
+            case 22: // Final Log and Stop
                 if (!follower.isBusy()) {
                     PoseStorage.currentPose = follower.getPose();
                     requestOpModeStop();
@@ -283,12 +314,12 @@ public class RedMasterAuto extends OpMode {
         firingTimer = new ElapsedTime();
         gateTimer = new ElapsedTime();
         intakeTimer = new ElapsedTime();
+        gateOpenTimer = new ElapsedTime();
         follower = Constants.createFollower(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
         follower.setStartingPose(startPose);
-        ShooterSubsystem.sIntercept = 655;
         buildPaths();
     }
 
@@ -305,7 +336,7 @@ public class RedMasterAuto extends OpMode {
                 follower.getVelocity().getMagnitude(),
                 follower.getVelocity().getTheta(),
                 -14,
-                true
+                false
         );
         telemetry.addData("Path State", pathState);
         telemetry.update();
