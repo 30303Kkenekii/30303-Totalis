@@ -38,7 +38,7 @@ public class ShooterSubsystem {
     public static double hD = 0.0857476;
     public static double hE = -2.04961;
 
-    public static double hRecoilSlope = 0.0005; // Hood moves 0.0005 per 1 RPM drop
+    public static double hRecoilSlope = 0.000; // Hood moves 0.0005 per 1 RPM drop
     public static double rpmTolerance = 40;
     public static int autoRPMOffset = 0;
     public boolean isFiring = false;
