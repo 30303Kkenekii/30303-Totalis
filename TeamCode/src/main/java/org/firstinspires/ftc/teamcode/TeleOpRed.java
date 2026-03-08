@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@TeleOp(name = "TeleOp Red - MASTER", group = "Main")
+@TeleOp(name = "TeleOp Red - FINAL MASTER", group = "Main")
 public class TeleOpRed extends LinearOpMode {
 
     private Follower follower;
@@ -100,7 +100,7 @@ public class TeleOpRed extends LinearOpMode {
         if (gamepad1.x && !lastX) intakeState = (intakeState == IntakeState.INTAKING) ? IntakeState.IDLE : IntakeState.INTAKING;
         if (gamepad1.y && !lastY) intakeState = (intakeState == IntakeState.EJECTING) ? IntakeState.IDLE : IntakeState.EJECTING;
         lastX = gamepad1.x; lastY = gamepad1.y;
-        if (gamepad1.b) intakeState = IntakeState.IDLE;
+        if (gamepad1.b || firingActive) intakeState = IntakeState.IDLE;
 
         switch (intakeState) {
             case IDLE: if (gamepad1.left_trigger > 0.1) intake.intakeReverse(); else if (!firingActive) intake.intakeOff(); break;
@@ -116,16 +116,13 @@ public class TeleOpRed extends LinearOpMode {
         lastA = gamepad1.a;
 
         if (firingActive) {
-            shooter.isFiring = true;
-            if (firingTimer.seconds() < 0) intake.intakeOff();
-            if (firingTimer.seconds() > .3) shooter.openGate();
-            if (firingTimer.seconds() > (.3 + ShooterSubsystem.gateToFeedDelay)) intake.intakeCustom();
+            shooter.isFiring = true; intake.intakeOff();
+            if (firingTimer.seconds() > 0.1) shooter.openGate();
+            if (firingTimer.seconds() > (0.1 + ShooterSubsystem.gateToFeedDelay)) intake.intakeCustom();
             if (firingTimer.seconds() > 1.2) {
+                firingActive = false; // REVERTED: Just turns off
                 shooter.closeGate(); shooter.isFiring = false;
-                if (firingTimer.seconds() > (1.2 + ShooterSubsystem.gateToFeedDelay)) {
-                    firingActive = false;
-                    intakeState = IntakeState.INTAKING;
-                }
+                intake.intakeOff();
             }
         }
     }

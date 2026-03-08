@@ -22,14 +22,14 @@ public class ShooterSubsystem {
 
     // --- FIELD GOALS ---
     public static double blueGoalX = 0, blueGoalY = 144, redGoalX = 144, redGoalY = 144;
-    public static double turretOffsetX = -4.5, turretOffsetY = 0;
+    public static double turretOffsetX = -.0314, turretOffsetY = 0;
 
     // --- NEW QUARTIC RPM REGRESSION (User Provided) ---
     public static double sA = 8.94942e-7;
     public static double sB = -0.000119137;
     public static double sC = -0.0448749;
     public static double sD = 14.83857;
-    public static double sE = 568.52284;
+    public static double sE = 598.52284;
 
     // --- NEW QUARTIC HOOD REGRESSION (User Provided) ---
     public static double hA = -1.45102e-8;

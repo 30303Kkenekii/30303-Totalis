@@ -27,7 +27,7 @@ public class TeleOpBlue extends LinearOpMode {
 
     private Pose safePose = new Pose(0, 0, 0);
     private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false, lastUp = false, lastDown = false;
-    private double driverTrim = -5;
+    private double driverTrim = 0;
     private ElapsedTime firingTimer = new ElapsedTime();
     private boolean firingActive = false;
 
@@ -77,6 +77,8 @@ public class TeleOpBlue extends LinearOpMode {
             if (vv != null) shooter.alignTurret(safePose.getX(), safePose.getY(), safePose.getHeading(), true, telemetry, vv.getMagnitude(), vv.getTheta(), driverTrim, false);
             leds.updateRPMIndicator(shooter.getCurrentVelocity(), shooter.getTargetVelocity());
 
+            if (shooter.isAtSpeed() && !firingActive) gamepad1.rumble(0.5, 0.5, 50);
+
             handleDrive();
             handleIntake();
             handleFiring();
@@ -114,17 +116,13 @@ public class TeleOpBlue extends LinearOpMode {
         lastA = gamepad1.a;
 
         if (firingActive) {
-            shooter.isFiring = true;
-            if (firingTimer.seconds() < 0) intake.intakeOff();
-            if (firingTimer.seconds() > 0.3) shooter.openGate();
-            if (firingTimer.seconds() > (0.3 + ShooterSubsystem.gateToFeedDelay)) intake.intakeCustom();
-
+            shooter.isFiring = true; intake.intakeOff();
+            if (firingTimer.seconds() > 0.1) shooter.openGate();
+            if (firingTimer.seconds() > (0.1 + ShooterSubsystem.gateToFeedDelay)) intake.intakeCustom();
             if (firingTimer.seconds() > 1.2) {
+                firingActive = false; // REVERTED: Just turns off
                 shooter.closeGate(); shooter.isFiring = false;
-                if (firingTimer.seconds() > (1.2 + ShooterSubsystem.gateToFeedDelay)) {
-                    firingActive = false;
-                    intakeState = IntakeState.INTAKING;
-                }
+                intake.intakeOff();
             }
         }
     }
