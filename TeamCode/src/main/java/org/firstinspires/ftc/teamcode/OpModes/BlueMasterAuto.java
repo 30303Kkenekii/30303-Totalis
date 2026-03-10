@@ -324,7 +324,7 @@ public class BlueMasterAuto extends OpMode {
                 telemetry,
                 follower.getVelocity().getMagnitude(),
                 follower.getVelocity().getTheta(),
-                -5.5,
+                0,
                 false
         );
         if (follower.getPose() != null) {

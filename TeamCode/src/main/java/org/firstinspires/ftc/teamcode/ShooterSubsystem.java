@@ -29,7 +29,7 @@ public class ShooterSubsystem {
     public static double sB = -0.000119137;
     public static double sC = -0.0448749;
     public static double sD = 14.83857;
-    public static double sE = 598.52284;
+    public static double sE = 630;
 
     // --- NEW QUARTIC HOOD REGRESSION (User Provided) ---
     public static double hA = -1.45102e-8;
