@@ -22,48 +22,41 @@ public class ShooterSubsystem {
 
     // --- FIELD GOALS ---
     public static double blueGoalX = 0, blueGoalY = 144, redGoalX = 144, redGoalY = 144;
-    public static double turretOffsetX = -.0314, turretOffsetY = 0;
+    public static double turretOffsetX = -4.5, turretOffsetY = 0;
 
-    // --- NEW QUARTIC RPM REGRESSION (User Provided) ---
-    public static double sA = 8.94942e-7;
-    public static double sB = -0.000119137;
-    public static double sC = -0.0448749;
-    public static double sD = 14.83857;
-    public static double sE = 630;
+    // --- YOUR TUNED LINEAR REGRESSIONS ---
+    public static double sSlope = 7.36194;
+    public static double sIntercept = 890.0; // Updated to 890 per request
 
-    // --- NEW QUARTIC HOOD REGRESSION (User Provided) ---
-    public static double hA = -1.45102e-8;
-    public static double hB = 0.00000677435;
-    public static double hC = -0.00115586;
-    public static double hD = 0.0857476;
-    public static double hE = -2.04961;
+    public static double hSlope = 0.00340002;
+    public static double hIntercept = -0.000519631;
 
-    public static double hRecoilSlope = 0.000; // Hood moves 0.0005 per 1 RPM drop
-    public static double rpmTolerance = 40;
-    public static int autoRPMOffset = 0;
-    public boolean isFiring = false;
+    // --- TUNING SLIDERS (Restored) ---
+    public static int tuningRPM = 2000;
+    public static double tuningHoodPos = 0.5;
+    public static int tuningTurretTicks = -950;
 
     // --- SAFETY LIMITS ---
     public static double MAX_RPM = 2000.0;
     public static double hoodMinPos = 0.0, hoodMaxPos = 0.8;
+    public static int autoRPMOffset = 0;
+    public static double rpmTolerance = 40;
+    public boolean isFiring = false;
 
-    // --- FLYWHEEL PIDF (TeleOp) ---
+    // --- PID ---
     public static double kP = 0.01, kI = 0.0, kD = 0, kF = 0.00057, RAMP_LIMIT = 0.05;
-    private PIDFController flywheelPIDF;
-    private double lastPower = 0;
-
-    // --- TURRET PID ---
+    public static double tp = 0.0021, ti = 0, td = 0.00008, tf = 0;
     public static double tSlope = -5.5617977528;
     public static int turretMin = -1195, turretMax = -700;
-    public static double tp = 0.0021, ti = 0, td = 0.00008, tf = 0;
-    public static double angleOffset = 180.0, gateOpenPos = 1.0, gateClosedPos = 0.0, gateToFeedDelay = 0.45;
+    public static double angleOffset = 180.0, gateOpenPos = 1.0, gateClosedPos = 0.0, gateToFeedDelay = 0.4;
 
     private boolean flywheelsActive = true;
     public static boolean flywheelsEnabled = true;
     private double currentTargetVelocity = 0;
+    private double lastPower = 0;
+    private PIDFController flywheelPIDF;
     public static PIDController tpidfController;
 
-    // --- PERSISTENCE ---
     private static double lastRawDegrees = -1;
     private static double totalUnwrappedDegrees = 0;
 
@@ -80,7 +73,6 @@ public class ShooterSubsystem {
         shooterRight.setDirection(DcMotorSimple.Direction.FORWARD);
         shooterLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
         turretLeft.setDirection(CRServo.Direction.FORWARD);
         turretRight.setDirection(CRServo.Direction.FORWARD);
 
@@ -115,13 +107,7 @@ public class ShooterSubsystem {
             setFlywheelVelocity(0, isAuto);
         }
 
-        double targetHoodPos = getRegressionHood(dist);
-        if (isFiring) {
-            double rpmError = Math.max(0, currentTargetVelocity - shooterLeft.getVelocity());
-            setHoodPosition(targetHoodPos - (rpmError * hRecoilSlope));
-        } else {
-            setHoodPosition(targetHoodPos);
-        }
+        shooterHood.setPosition(getRegressionHood(dist));
     }
 
     public void setFlywheelVelocity(double targetRPM, boolean isAuto) {
@@ -156,27 +142,20 @@ public class ShooterSubsystem {
         }
     }
 
-    // --- QUARTIC REGRESSION MATH ---
-    public int getRegressionRPM(double d) {
-        return (int) (sA * Math.pow(d, 4) + sB * Math.pow(d, 3) + sC * Math.pow(d, 2) + sD * d + sE);
-    }
+    // --- LINEAR MATH HELPERS ---
+    public int getRegressionRPM(double d) { return (int) (sSlope * d + sIntercept); }
+    public double getRegressionHood(double d) { return Range.clip(hSlope * d + hIntercept, hoodMinPos, hoodMaxPos); }
 
-    public double getRegressionHood(double d) {
-        double pos = hA * Math.pow(d, 4) + hB * Math.pow(d, 3) + hC * Math.pow(d, 2) + hD * d + hE;
-        return Range.clip(pos, hoodMinPos, hoodMaxPos);
-    }
+    // --- MANUAL SETTERS ---
+    public void setFlywheelVelocity(int velocity) { setFlywheelVelocity((double)velocity, false); }
+    public void setHoodPosition(double pos) { shooterHood.setPosition(Range.clip(pos, hoodMinPos, hoodMaxPos)); }
 
     public void setTurretPosition(int targetTicks) {
-        tpidfController.setPID(tp, ti, td);
         int currentTicks = getTurretPos();
         int safeTarget = Range.clip(targetTicks, turretMin, turretMax);
         double power = Range.clip(tpidfController.calculate(currentTicks, safeTarget) + tf, -0.7, 0.7);
         if (Math.abs(safeTarget - currentTicks) < 5) power = 0;
         turretLeft.setPower(power); turretRight.setPower(power);
-    }
-
-    public void setHoodPosition(double pos) {
-        shooterHood.setPosition(Range.clip(pos, hoodMinPos, hoodMaxPos));
     }
 
     public int getTurretPos() {
@@ -190,7 +169,7 @@ public class ShooterSubsystem {
     public void openGate() { shooterGate.setPosition(gateOpenPos); }
     public void closeGate() { shooterGate.setPosition(gateClosedPos); }
     public void enableFlywheels() { flywheelsActive = true; flywheelsEnabled = true; }
-    public void disableFlywheels() { flywheelsActive = false; flywheelsEnabled = false; }
+    public void disableFlywheels() { flywheelsActive = false; flywheelsEnabled = false; setFlywheelVelocity(0, false); }
     public boolean areFlywheelsEnabled() { return flywheelsActive; }
     public boolean isAtSpeed() { return Math.abs(shooterLeft.getVelocity() - currentTargetVelocity) < rpmTolerance; }
     public double distToGoal(double x, double y, boolean blue) { return Math.hypot((blue ? blueGoalX : redGoalX) - x, (blue ? blueGoalY : redGoalY) - y); }

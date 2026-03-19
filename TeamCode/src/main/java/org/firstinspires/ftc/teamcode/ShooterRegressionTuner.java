@@ -12,29 +12,34 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@TeleOp(name = "Flywheel & Hood Tuning", group = "TeleOp")
+@TeleOp(name = "Shooter Regression Tuner", group = "TeleOp")
 public class ShooterRegressionTuner extends OpMode {
+    // Subsystems
     ShooterSubsystem shooter;
     IntakeSubsystem intake;
     Follower follower;
 
+    // Drive Motors (Raw control to prevent Pedro crashes)
     private DcMotorEx leftFront, leftBack, rightFront, rightBack;
 
-    public static int vel = 0;
-    public static double hoodPos = 0.5;
-
+    // Logic States
     enum IntakeState { IDLE, INTAKING, STALLED }
-    private IntakeState intakeState = IntakeState.IDLE;
+    private IntakeState currentIntakeState = IntakeState.IDLE;
 
-    private boolean lastX = false, lastLB = false, lastRB = false;
+    private boolean lastX = false;
+    private boolean lastLB = false;
+    private boolean lastRB = false;
 
     @Override
     public void init() {
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         follower = Constants.createFollower(hardwareMap);
+
+        // Start center of bot at 8,8 (tucked in corner)
         follower.setStartingPose(new Pose(8, 8, 0));
 
+        // Hardware for raw motor driving
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
@@ -44,6 +49,7 @@ public class ShooterRegressionTuner extends OpMode {
         leftBack.setDirection(DcMotor.Direction.REVERSE);
 
         shooter.disableFlywheels();
+        shooter.closeGate();
         intake.intakeOff();
     }
 
@@ -52,66 +58,108 @@ public class ShooterRegressionTuner extends OpMode {
         follower.update();
         Pose cp = follower.getPose();
 
-        // --- 1. DRIVE ---
+        // --- 1. ROBOT CENTRIC DRIVE ---
+        // Translation: Right Stick | Rotation: Left Stick
         double y = -gamepad1.right_stick_y;
         double x = gamepad1.right_stick_x * 1.1;
         double rx = gamepad1.left_stick_x;
-        double den = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-        leftFront.setPower((y + x + rx) / den); leftBack.setPower((y - x + rx) / den);
-        rightFront.setPower((y - x - rx) / den); rightBack.setPower((y + x - rx) / den);
 
-        // --- 2. TUNING INPUTS ---
+        double den = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+        leftFront.setPower((y + x + rx) / den);
+        leftBack.setPower((y - x + rx) / den);
+        rightFront.setPower((y - x - rx) / den);
+        rightBack.setPower((y + x - rx) / den);
+
+        // --- 2. SHOOTER TUNING INPUTS ---
+
+        // Adjust Velocity Target (Bumpers)
         if (gamepad1.right_bumper && !lastRB) {
-            vel += 100;
-            shooter.enableFlywheels(); // FIX: Wake up system
+            ShooterSubsystem.tuningRPM += 100;
+            shooter.enableFlywheels();
             gamepad1.rumble(100);
         }
         else if (gamepad1.left_bumper && !lastLB) {
-            vel -= 100;
-            shooter.enableFlywheels(); // FIX: Wake up system
+            ShooterSubsystem.tuningRPM -= 100;
+            shooter.enableFlywheels();
             gamepad1.rumble(100);
         }
 
-        if (gamepad1.dpad_up) hoodPos += 0.001;
-        if (gamepad1.dpad_down) hoodPos -= 0.001;
-        hoodPos = Range.clip(hoodPos, 0, 0.8);
+        // Adjust Hood Position (D-Pad)
+        if (gamepad1.dpad_up) ShooterSubsystem.tuningHoodPos += 0.001;
+        if (gamepad1.dpad_down) ShooterSubsystem.tuningHoodPos -= 0.001;
+
+        // Ensure values stay within the safety limits set in your Subsystem
+        ShooterSubsystem.tuningHoodPos = Range.clip(ShooterSubsystem.tuningHoodPos,
+                ShooterSubsystem.hoodMinPos,
+                ShooterSubsystem.hoodMaxPos);
 
         // --- 3. INTAKE & FEED LOGIC ---
-        if (gamepad1.x && !lastX) intakeState = (intakeState == IntakeState.INTAKING) ? IntakeState.IDLE : IntakeState.INTAKING;
-        if (gamepad1.b) intakeState = IntakeState.IDLE;
 
-        switch (intakeState) {
-            case IDLE:
-                if (gamepad1.a) { shooter.openGate(); intake.intakeCustom(); }
-                else {; intake.intakeOff(); }
-                break;
-            case INTAKING:
-                intake.intakeFull();
-                if (intake.isStalled()) intakeState = IntakeState.STALLED;
-                break;
-            case STALLED:
-                intake.intakeOff();
-                gamepad1.rumble(50);
-                if (gamepad1.a) { shooter.openGate(); intake.intakeCustom(); intakeState = IntakeState.IDLE; }
-                break;
+        // Tap X: Toggle Intake Search (Stops automatically on Stall)
+        if (gamepad1.x && !lastX) {
+            currentIntakeState = (currentIntakeState == IntakeState.INTAKING) ? IntakeState.IDLE : IntakeState.INTAKING;
+        }
+
+        // Tap B: Stop Everything
+        if (gamepad1.b) {
+            currentIntakeState = IntakeState.IDLE;
+            shooter.disableFlywheels();
+        }
+
+        // A Button: MANUAL KICK (Hold to shoot)
+        // This overrides intake state to feed the ball
+        if (gamepad1.a) {
+            shooter.openGate();
+            intake.intakeCustom(); // Feed ball
+        } else {
+            // Only update intake if we aren't kicking
+            handleIntakeState();
         }
 
         lastRB = gamepad1.right_bumper; lastLB = gamepad1.left_bumper; lastX = gamepad1.x;
 
-        // --- 4. HARDWARE ---
-        //shooter.setFlywheelVelocity(vel);
-        //shooter.setHoodPosition(hoodPos);
-        //shooter.setTurretPosition(ShooterSubsystem.tuningTurretTicks);
+        // --- 4. HARDWARE UPDATES ---
+        // We use the "tuning" variables from Dashboard for manual control
+        shooter.setFlywheelVelocity(ShooterSubsystem.tuningRPM);
+        shooter.setHoodPosition(ShooterSubsystem.tuningHoodPos);
 
-        // --- 5. TELEMETRY ---
+        // Manual Aim: Use the Dashboard slider to aim the turret
+        shooter.setTurretPosition(ShooterSubsystem.tuningTurretTicks);
+
+        // --- 5. BASIC TELEMETRY ---
         if (cp != null) {
-            double dist = Math.hypot(ShooterSubsystem.blueGoalX - cp.getX(), ShooterSubsystem.blueGoalY - cp.getY());
-            telemetry.addData("Dist to Blue Goal", "%.2f", dist);
-            telemetry.addData("Target RPM", vel);
+            // Distance to blue goal (0, 144) as requested
+            double dist = Math.hypot(ShooterSubsystem.blueGoalX - cp.getX(),
+                    ShooterSubsystem.blueGoalY - cp.getY());
+
+            telemetry.addData("Distance to Blue Goal", "%.2f", dist);
+            telemetry.addData("Target RPM", ShooterSubsystem.tuningRPM);
             telemetry.addData("Actual RPM", (int)shooter.getCurrentVelocity());
-            telemetry.addData("Hood Target", "%.3f", hoodPos);
-            telemetry.addData("System Active", shooter.areFlywheelsEnabled());
+            telemetry.addData("Hood Target", "%.3f", ShooterSubsystem.tuningHoodPos);
+            telemetry.addData("Turret Ticks", shooter.getTurretPos());
+            telemetry.addData("Intake State", currentIntakeState);
+            telemetry.addData("Ready to Fire", shooter.isAtSpeed());
+        } else {
+            telemetry.addLine("WAITING FOR LOCALIZER POSE...");
         }
         telemetry.update();
+    }
+
+    private void handleIntakeState() {
+        switch (currentIntakeState) {
+            case IDLE:
+                intake.intakeOff();
+                break;
+            case INTAKING:
+                intake.intakeFull();
+                if (intake.isStalled()) {
+                    currentIntakeState = IntakeState.STALLED;
+                }
+                break;
+            case STALLED:
+                intake.intakeOff();
+                gamepad1.rumble(50); // Buzz while ball is held
+                break;
+        }
     }
 }
