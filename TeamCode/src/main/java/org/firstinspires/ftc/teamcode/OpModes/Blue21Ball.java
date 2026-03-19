@@ -53,7 +53,7 @@ public class Blue21Ball extends OpMode {
 
     public double shootTime = 0.6;
 
-    private PathChain scorePreload, grabFirstSpikemark, scoreFirstSpikemark, grabSecondSpikemark, scoreSecondSpikemark, grabThirdSpikemark, scoreThirdSpikemark, grabFourthPickup, scoreFourthPickup, Park;
+    private PathChain scorePreload, grabFirstPickup, scoreFirstPickup, grabGatePickup, scoreGatePickup, Park;
 
     public void buildPaths() {
         scorePreload = follower.pathBuilder()
@@ -61,47 +61,27 @@ public class Blue21Ball extends OpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading())
                 .build();
 
-        grabFirstSpikemark = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, firstSpikeMarkPose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), firstSpikeMarkPose.getHeading())
-                .build();
 
-        scoreFirstSpikemark = follower.pathBuilder()
-                .addPath(new BezierLine(firstSpikeMarkPose, scorePose))
-                .setLinearHeadingInterpolation(firstSpikeMarkPose.getHeading(), scorePose.getHeading())
-                .build();
-
-        grabSecondSpikemark = follower.pathBuilder()
+        grabFirstPickup = follower.pathBuilder()
                 .addPath(new BezierCurve(scorePose, secondControlPoint, secondSpikeMarkPose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), secondSpikeMarkPose.getHeading())
                 .build();
 
-        scoreSecondSpikemark = follower.pathBuilder()
+        scoreFirstPickup = follower.pathBuilder()
                 .addPath(new BezierCurve(secondSpikeMarkPose, returnSecondControlPoint, scorePose))
                 .setLinearHeadingInterpolation(secondSpikeMarkPose.getHeading(), scorePose.getHeading())
                 .build();
 
-        grabThirdSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, thirdControlPoint, thirdSpikeMarkPose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), thirdSpikeMarkPose.getHeading())
+        grabGatePickup = follower.pathBuilder()
+                .addPath(new BezierCurve(scorePose, secondControlPoint, gatePose))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), gatePose.getHeading())
                 .build();
 
-        scoreThirdSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(thirdSpikeMarkPose, returnThirdControlPoint, scorePose))
-                .setLinearHeadingInterpolation(thirdSpikeMarkPose.getHeading(), scorePose.getHeading())
+        scoreGatePickup = follower.pathBuilder()
+                .addPath(new BezierCurve(gatePose, returnSecondControlPoint, scorePose))
+                .setLinearHeadingInterpolation(gatePose.getHeading(), scorePose.getHeading())
                 .build();
 
-        grabFourthPickup = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, secondControlPoint, setUpForthPickupPose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), setUpForthPickupPose.getHeading())
-                .addPath(new BezierLine(setUpForthPickupPose, forthPickupPose))
-                .setLinearHeadingInterpolation(setUpForthPickupPose.getHeading(), forthPickupPose.getHeading())
-                .build();
-
-        scoreFourthPickup = follower.pathBuilder()
-                .addPath(new BezierCurve(forthPickupPose, returnThirdControlPoint, scorePose))
-                .setLinearHeadingInterpolation(forthPickupPose.getHeading(), scorePose.getHeading())
-                .build();
 
         Park = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose, endPose))
@@ -121,30 +101,32 @@ public class Blue21Ball extends OpMode {
                 break;
 
             case 1:
-                if (gateOpenTimer.seconds() > .3) {
-                    shooter.openGate();
+                if (!follower.isBusy() && shooter.isAtSpeed()) {
+                    firingTimer.reset();
                     setPathState(2);
                 }
                 break;
 
-            case 2:
-                if (!follower.isBusy() && shooter.isAtSpeed()) {
-                    setPathState(3); firingTimer.reset();
-                }
-                break;
-
-            case 3: // PRELOAD FIRE
+            case 2: // PRELOAD FIRE
                 shooter.isFiring = true;
                 intake.intakeCustom();
                 if (firingTimer.seconds() > shootTime) {
                     shooter.isFiring = false;
                     shooter.closeGate();
                     intake.intakeOff();
-                    follower.followPath(grabFirstSpikemark, true);
-                    setPathState(4);
+                    follower.followPath(grabFirstPickup, true);
+
+                    setPathState(3);
                 }
                 break;
 
+            case 3: // Arrival at First Pickup
+                intake.intakeFull();
+                if (!follower.isBusy()) {
+
+                    setPathState(4);
+                }
+                break;
 
             case 21: // Final Log and Stop
                 if (!follower.isBusy()) {
