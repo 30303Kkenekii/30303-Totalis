@@ -26,7 +26,7 @@ public class ShooterSubsystem {
 
     // --- YOUR TUNED LINEAR REGRESSIONS ---
     public static double sSlope = 7.36194;
-    public static double sIntercept = 890.0; // Updated to 890 per request
+    public static double sIntercept = 930; // Updated to 890 per request
 
     public static double hSlope = 0.00340002;
     public static double hIntercept = -0.000519631;
@@ -45,7 +45,7 @@ public class ShooterSubsystem {
 
     // --- PID ---
     public static double kP = 0.01, kI = 0.0, kD = 0, kF = 0.00057, RAMP_LIMIT = 0.05;
-    public static double tp = 0.0021, ti = 0, td = 0.00008, tf = 0;
+    public static double tp = 0.0025, ti = 0, td = 0.00008, tf = 0;
     public static double tSlope = -5.5617977528;
     public static int turretMin = -1195, turretMax = -700;
     public static double angleOffset = 180.0, gateOpenPos = 1.0, gateClosedPos = 0.0, gateToFeedDelay = 0.4;

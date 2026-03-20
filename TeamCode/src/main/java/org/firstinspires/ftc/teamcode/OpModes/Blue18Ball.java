@@ -37,22 +37,22 @@ public class Blue18Ball extends OpMode {
     private final Pose scorePose = new Pose(57.3, 84.3, Math.toRadians(141));
     private final Pose firstSpikeMarkPose = new Pose(19.5745, 72.3472, Math.toRadians(180));
     private final Pose secondSpikeMarkPose = new Pose(12, 57.5, Math.toRadians(180));
-    private final Pose thirdSpikeMarkPose = new Pose(12, 36, Math.toRadians(180));
+    public  static Pose thirdSpikeMarkPose = new Pose(12, 36, Math.toRadians(180));
     private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
     private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
     private final Pose gatePose = new Pose(19.5, 62, Math.toRadians(180));
-    private final Pose gatePoseControlPoint = new Pose(45, 55);
-    public Pose secondControlPoint = new Pose(65, 65);
-    public Pose returnSecondControlPoint = new Pose(33, 50);
-    public Pose thirdControlPoint = new Pose(65, 26);
-    public Pose returnThirdControlPoint = new Pose(33, 26);
+    public static Pose gatePoseControlPoint = new Pose(35, 50);
+    public static Pose secondControlPoint = new Pose(65, 65);
+    public static Pose returnSecondControlPoint = new Pose(33, 50);
+    public static Pose thirdControlPoint = new Pose(65, 28);
+    public static Pose returnThirdControlPoint = new Pose(33, 28);
 
-    public double shootTime = .6;
-    public double shooterGateOpenTime = .3;
-    public double intakeTime = .3;
-    public double firstSpikeWaitTime = 0.8;
-    public double gateWaitTime = 2;
+    public static double shootTime = .5;
+    public static double shooterGateOpenTime = .3;
+    public static double intakeTime = .3;
+    public static double firstSpikeWaitTime = 0.8;
+    public static double gateWaitTime = 1;
     public double fourthPickupWaitTime = 4;
 
     private boolean readyToFire = false;
@@ -89,7 +89,7 @@ public class Blue18Ball extends OpMode {
                 .build();
 
         scoreSecondSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(gatePose, returnSecondControlPoint, scorePose))
+                .addPath(new BezierLine(gatePose, scorePose))
                 .setLinearHeadingInterpolation(gatePose.getHeading(), scorePose.getHeading())
                 .build();
 
@@ -280,7 +280,7 @@ public class Blue18Ball extends OpMode {
                     telemetry,
                     follower.getVelocity().getMagnitude(),
                     follower.getVelocity().getTheta(),
-                    -7,
+                    -5,
                     false
             );
         }
