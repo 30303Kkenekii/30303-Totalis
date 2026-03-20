@@ -41,7 +41,7 @@ public class Blue18Ball extends OpMode {
     private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
     private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
-    private final Pose gatePose = new Pose(13.8744, 56.8, Math.toRadians(148.4346));
+    private final Pose gatePose = new Pose(19.5, 62, Math.toRadians(180));
     private final Pose gatePoseControlPoint = new Pose(45, 55);
     public Pose secondControlPoint = new Pose(65, 65);
     public Pose returnSecondControlPoint = new Pose(33, 50);
