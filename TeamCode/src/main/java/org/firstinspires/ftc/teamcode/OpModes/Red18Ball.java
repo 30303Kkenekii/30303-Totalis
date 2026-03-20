@@ -36,7 +36,7 @@ public class Red18Ball extends OpMode {
     private final Pose startPose = new Pose(125.3233, 115.5557, Math.toRadians(37.8449));
     private final Pose scorePose = new Pose(90, 84.3, Math.toRadians(29));
     private final Pose firstSpikeMarkPose = new Pose(127.4342, 70, Math.toRadians(0));
-    private final Pose secondSpikeMarkPose = new Pose(136, 54, Math.toRadians(-5));
+    private final Pose secondSpikeMarkPose = new Pose(136, 54, Math.toRadians(-0));
     private final Pose thirdSpikeMarkPose = new Pose(135, 30.3274, Math.toRadians(0));
     private final Pose setUpForthPickupPose = new Pose(136.3332, 54, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-85));
@@ -110,7 +110,6 @@ public class Red18Ball extends OpMode {
                 .setLinearHeadingInterpolation(scorePose.getHeading(), setUpForthPickupPose.getHeading())
                 .addPath(new BezierLine(setUpForthPickupPose, forthPickupPose))
                 .setLinearHeadingInterpolation(setUpForthPickupPose.getHeading(), forthPickupPose.getHeading())
-                .addParametricCallback(fourthPickupSlowdownPoint, () -> follower.setMaxPower(fourthPickupSlowSpeed))
                 .build();
 
         scoreFourthPickup = follower.pathBuilder()
@@ -279,12 +278,12 @@ public class Red18Ball extends OpMode {
                     follower.getPose().getX(),
                     follower.getPose().getY(),
                     follower.getPose().getHeading(),
-                    true,
+                    false,
                     telemetry,
                     follower.getVelocity().getMagnitude(),
                     follower.getVelocity().getTheta(),
-                    -5,
-                    false
+                    -14,
+                    true
             );
         }
         telemetry.addData("Path State", pathState);

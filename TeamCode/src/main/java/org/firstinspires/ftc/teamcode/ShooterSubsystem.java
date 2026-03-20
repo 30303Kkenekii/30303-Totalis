@@ -39,7 +39,7 @@ public class ShooterSubsystem {
     // --- SAFETY LIMITS ---
     public static double MAX_RPM = 2000.0;
     public static double hoodMinPos = 0.0, hoodMaxPos = 0.8;
-    public static int autoRPMOffset = 0;
+    public static int autoRPMOffset = -20;
     public static double rpmTolerance = 40;
     public boolean isFiring = false;
 

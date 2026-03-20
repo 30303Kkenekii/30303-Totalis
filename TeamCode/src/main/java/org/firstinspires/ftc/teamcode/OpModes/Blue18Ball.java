@@ -110,7 +110,6 @@ public class Blue18Ball extends OpMode {
                 .setLinearHeadingInterpolation(scorePose.getHeading(), setUpForthPickupPose.getHeading())
                 .addPath(new BezierLine(setUpForthPickupPose, forthPickupPose))
                 .setLinearHeadingInterpolation(setUpForthPickupPose.getHeading(), forthPickupPose.getHeading())
-                .addParametricCallback(fourthPickupSlowdownPoint, () -> follower.setMaxPower(fourthPickupSlowSpeed))
                 .build();
 
         scoreFourthPickup = follower.pathBuilder()
