@@ -17,8 +17,8 @@ import org.firstinspires.ftc.teamcode.PoseStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "🟦🟦🟦Blue21BallAuto🟦🟦🟦", group = "Autonomous")
-public class Blue21Ball extends OpMode {
+@Autonomous(name = "🟦🟦🟦BlueMasterAuto🟦🟦🟦", group = "Autonomous")
+public class Blue18Ball extends OpMode {
 
     private Follower follower;
     private ShooterSubsystem shooter;
@@ -48,14 +48,18 @@ public class Blue21Ball extends OpMode {
     private final Pose returnThirdControlPoint = new Pose(43, 26);
 
     public double shootTime = 0.6;
-    public double shooterGateOpenTime = .3;
-    public double intakeTime = .3;
-    public double gateWaitTime = 1;
+    public double shooterGateOpenTime = 0.3;
+    public double intakeTime = 0.3;
+    public double firstSpikeWaitTime = 0.8;
+    public double gateWaitTime = 1.0;
+    public double fourthPickupWaitTime = 3.7;
 
     private boolean readyToFire = false;
     private boolean arrivedAtPickup = false;
 
-    private PathChain scorePreload, grabFirstPickup, scoreFirstPickup, grabGatePickup, scoreGatePickup, Park;
+    private PathChain scorePreload, grabFirstSpikemark, scoreFirstSpikemark,
+            grabSecondSpikemark, scoreSecondSpikemark, grabGatePickup, scoreGatePickup,
+            grabThirdSpikemark, scoreThirdSpikemark, grabFourthPickup, scoreFourthPickup, Park;
 
     public void buildPaths() {
         scorePreload = follower.pathBuilder()
@@ -63,12 +67,22 @@ public class Blue21Ball extends OpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading())
                 .build();
 
-        grabFirstPickup = follower.pathBuilder()
+        grabFirstSpikemark = follower.pathBuilder()
+                .addPath(new BezierLine(scorePose, firstSpikeMarkPose))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), firstSpikeMarkPose.getHeading())
+                .build();
+
+        scoreFirstSpikemark = follower.pathBuilder()
+                .addPath(new BezierLine(firstSpikeMarkPose, scorePose))
+                .setLinearHeadingInterpolation(firstSpikeMarkPose.getHeading(), scorePose.getHeading())
+                .build();
+
+        grabSecondSpikemark = follower.pathBuilder()
                 .addPath(new BezierCurve(scorePose, secondControlPoint, secondSpikeMarkPose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), secondSpikeMarkPose.getHeading())
                 .build();
 
-        scoreFirstPickup = follower.pathBuilder()
+        scoreSecondSpikemark = follower.pathBuilder()
                 .addPath(new BezierCurve(secondSpikeMarkPose, returnSecondControlPoint, scorePose))
                 .setLinearHeadingInterpolation(secondSpikeMarkPose.getHeading(), scorePose.getHeading())
                 .build();
@@ -81,6 +95,28 @@ public class Blue21Ball extends OpMode {
         scoreGatePickup = follower.pathBuilder()
                 .addPath(new BezierCurve(gatePose, returnSecondControlPoint, scorePose))
                 .setLinearHeadingInterpolation(gatePose.getHeading(), scorePose.getHeading())
+                .build();
+
+        grabThirdSpikemark = follower.pathBuilder()
+                .addPath(new BezierCurve(scorePose, thirdControlPoint, thirdSpikeMarkPose))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), thirdSpikeMarkPose.getHeading())
+                .build();
+
+        scoreThirdSpikemark = follower.pathBuilder()
+                .addPath(new BezierCurve(thirdSpikeMarkPose, returnThirdControlPoint, scorePose))
+                .setLinearHeadingInterpolation(thirdSpikeMarkPose.getHeading(), scorePose.getHeading())
+                .build();
+
+        grabFourthPickup = follower.pathBuilder()
+                .addPath(new BezierCurve(scorePose, secondControlPoint, setUpForthPickupPose))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), setUpForthPickupPose.getHeading())
+                .addPath(new BezierLine(setUpForthPickupPose, forthPickupPose))
+                .setLinearHeadingInterpolation(setUpForthPickupPose.getHeading(), forthPickupPose.getHeading())
+                .build();
+
+        scoreFourthPickup = follower.pathBuilder()
+                .addPath(new BezierCurve(forthPickupPose, returnThirdControlPoint, scorePose))
+                .setLinearHeadingInterpolation(forthPickupPose.getHeading(), scorePose.getHeading())
                 .build();
 
         Park = follower.pathBuilder()
@@ -99,9 +135,9 @@ public class Blue21Ball extends OpMode {
                 setPathState(1);
                 break;
 
-            // === CYCLE 1 ===
-            case 1: // PRELOAD FIRE
-                handleFiring(2, grabFirstPickup);
+            // === PRELOAD FIRE ===
+            case 1:
+                handleFiring(2, grabFirstSpikemark);
                 break;
 
             case 2:
@@ -112,8 +148,9 @@ public class Blue21Ball extends OpMode {
                 handleIntakeDelay(4);
                 break;
 
+            // === FIRST SPIKEMARK ===
             case 4:
-                handlePickupWait(5, scoreFirstPickup, intakeTimer, intakeTime);
+                handlePickupWait(5, scoreFirstSpikemark, intakeTimer, firstSpikeWaitTime);
                 break;
 
             case 5:
@@ -123,9 +160,9 @@ public class Blue21Ball extends OpMode {
                 }
                 break;
 
-            // === CYCLE 2 ===
+            // === SECOND SPIKEMARK FIRE ===
             case 6:
-                handleFiring(7, grabGatePickup);
+                handleFiring(7, grabSecondSpikemark);
                 break;
 
             case 7:
@@ -136,8 +173,9 @@ public class Blue21Ball extends OpMode {
                 handleIntakeDelay(9);
                 break;
 
+            // === SECOND SPIKEMARK ===
             case 9:
-                handlePickupWait(10, scoreGatePickup, gateTimer, gateWaitTime);
+                handlePickupWait(10, scoreSecondSpikemark, intakeTimer, intakeTime);
                 break;
 
             case 10:
@@ -147,7 +185,7 @@ public class Blue21Ball extends OpMode {
                 }
                 break;
 
-            // === CYCLE 3 ===
+            // === GATE FIRE ===
             case 11:
                 handleFiring(12, grabGatePickup);
                 break;
@@ -160,6 +198,7 @@ public class Blue21Ball extends OpMode {
                 handleIntakeDelay(14);
                 break;
 
+            // === GATE PICKUP ===
             case 14:
                 handlePickupWait(15, scoreGatePickup, gateTimer, gateWaitTime);
                 break;
@@ -171,10 +210,11 @@ public class Blue21Ball extends OpMode {
                 }
                 break;
 
-            // === CYCLE 4 ===
+            // === THIRD SPIKEMARK FIRE ===
             case 16:
-                handleFiring(17, grabGatePickup);
+                handleFiring(17, grabThirdSpikemark);
                 break;
+
             case 17:
                 handleGateClose(18);
                 break;
@@ -183,8 +223,9 @@ public class Blue21Ball extends OpMode {
                 handleIntakeDelay(19);
                 break;
 
+            // === THIRD SPIKEMARK ===
             case 19:
-                handlePickupWait(20, scoreGatePickup, gateTimer, gateWaitTime);
+                handlePickupWait(20, scoreThirdSpikemark, intakeTimer, intakeTime);
                 break;
 
             case 20:
@@ -194,9 +235,9 @@ public class Blue21Ball extends OpMode {
                 }
                 break;
 
-            // === FINAL FIRE + PARK ===
+            // === FOURTH PICKUP FIRE ===
             case 21:
-                handleFiring(22, Park);
+                handleFiring(22, grabFourthPickup);
                 break;
 
             case 22:
@@ -204,9 +245,25 @@ public class Blue21Ball extends OpMode {
                 break;
 
             case 23:
-                handleIntakeDelay(999);
+                handleIntakeDelay(24);
                 break;
 
+            // === FOURTH PICKUP ===
+            case 24:
+                handlePickupWaitTimed(25, scoreFourthPickup, fourthPickupWaitTime);
+                break;
+
+            case 25:
+                if (shooterGateTimer.seconds() > shooterGateOpenTime) {
+                    shooter.openGate();
+                    setPathState(26);
+                }
+                break;
+
+            // === FINAL FIRE + PARK ===
+            case 26:
+                handleFiring(999, Park);
+                break;
 
             case 999:
                 if (!follower.isBusy()) {
@@ -303,6 +360,15 @@ public class Blue21Ball extends OpMode {
             shooterGateTimer.reset();
             follower.followPath(nextPath, true);
             arrivedAtPickup = false;
+            setPathState(nextState);
+        }
+    }
+
+    private void handlePickupWaitTimed(int nextState, PathChain nextPath, double waitTime) {
+        if (pathTimer.seconds() > waitTime) {
+            intake.intakeOff();
+            shooterGateTimer.reset();
+            follower.followPath(nextPath, true);
             setPathState(nextState);
         }
     }

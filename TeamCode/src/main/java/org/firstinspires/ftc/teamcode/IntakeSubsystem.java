@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Configurable
 public class IntakeSubsystem {
-    public static double ASlowDown = 1;
+    public static double ASlowDown = .8;
     public static double INTAKE_POWER = 1.0;
     public static double STALL_TIMEOUT_MS = 300.0;
     public static int STALL_TICKS_THRESHOLD = 10;
