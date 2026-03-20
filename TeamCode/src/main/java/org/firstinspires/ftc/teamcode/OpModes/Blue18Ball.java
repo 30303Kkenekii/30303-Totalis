@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.PoseStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "🟦🟦🟦Blue18Auto🟦🟦🟦", group = "Autonomous")
+@Autonomous(name = "🟦🟦🟦Blue15BallAuto🟦🟦🟦", group = "Autonomous")
 public class Blue18Ball extends OpMode {
 
     private Follower follower;
@@ -42,23 +42,24 @@ public class Blue18Ball extends OpMode {
     private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
     private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
     private final Pose gatePose = new Pose(13.8744, 56.8, Math.toRadians(148.4346));
+    private final Pose gatePoseControlPoint = new Pose(45, 55);
     public Pose secondControlPoint = new Pose(65, 65);
     public Pose returnSecondControlPoint = new Pose(33, 50);
     public Pose thirdControlPoint = new Pose(65, 26);
     public Pose returnThirdControlPoint = new Pose(33, 26);
 
-    public double shootTime = .5;
-    public double shooterGateOpenTime = .2;
-    public double intakeTime = .2;
+    public double shootTime = .6;
+    public double shooterGateOpenTime = .3;
+    public double intakeTime = .3;
     public double firstSpikeWaitTime = 0.8;
-    public double gateWaitTime = 0;
-    public double fourthPickupWaitTime = 3.7;
+    public double gateWaitTime = 2;
+    public double fourthPickupWaitTime = 4;
 
     private boolean readyToFire = false;
     private boolean arrivedAtPickup = false;
 
     private PathChain scorePreload, grabFirstSpikemark, scoreFirstSpikemark,
-            grabSecondSpikemark, scoreSecondSpikemark, grabGatePickup, scoreGatePickup,
+            grabSecondSpikemark, secondGateOpen, scoreSecondSpikemark,
             grabThirdSpikemark, scoreThirdSpikemark, grabFourthPickup, scoreFourthPickup, Park;
 
     public void buildPaths() {
@@ -82,17 +83,12 @@ public class Blue18Ball extends OpMode {
                 .setLinearHeadingInterpolation(scorePose.getHeading(), secondSpikeMarkPose.getHeading())
                 .build();
 
+        secondGateOpen = follower.pathBuilder()
+                .addPath(new BezierCurve(secondSpikeMarkPose, gatePoseControlPoint, gatePose))
+                .setLinearHeadingInterpolation(secondSpikeMarkPose.getHeading(), gatePose.getHeading())
+                .build();
+
         scoreSecondSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(secondSpikeMarkPose, returnSecondControlPoint, scorePose))
-                .setLinearHeadingInterpolation(secondSpikeMarkPose.getHeading(), scorePose.getHeading())
-                .build();
-
-        grabGatePickup = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, secondControlPoint, gatePose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), gatePose.getHeading())
-                .build();
-
-        scoreGatePickup = follower.pathBuilder()
                 .addPath(new BezierCurve(gatePose, returnSecondControlPoint, scorePose))
                 .setLinearHeadingInterpolation(gatePose.getHeading(), scorePose.getHeading())
                 .build();
@@ -173,95 +169,74 @@ public class Blue18Ball extends OpMode {
                 handleIntakeDelay(9);
                 break;
 
-            // === SECOND SPIKEMARK ===
+            // === SECOND SPIKEMARK → GATE ===
             case 9:
-                handlePickupWait(10, scoreSecondSpikemark, intakeTimer, intakeTime);
+                handlePickupWait(10, secondGateOpen, intakeTimer, intakeTime);
                 break;
 
-            case 10:
-                if (shooterGateTimer.seconds() > shooterGateOpenTime) {
-                    shooter.openGate();
-                    setPathState(11);
-                }
+            case 10: // wait at gate, then drive to score
+                handlePickupWait(11, scoreSecondSpikemark, gateTimer, gateWaitTime);
                 break;
 
-            // === GATE FIRE ===
             case 11:
-                handleFiring(12, grabGatePickup);
-                break;
-
-            case 12:
-                handleGateClose(13);
-                break;
-
-            case 13:
-                handleIntakeDelay(14);
-                break;
-
-            // === GATE PICKUP ===
-            case 14:
-                handlePickupWait(15, scoreGatePickup, gateTimer, gateWaitTime);
-                break;
-
-            case 15:
                 if (shooterGateTimer.seconds() > shooterGateOpenTime) {
                     shooter.openGate();
-                    setPathState(16);
+                    setPathState(12);
                 }
                 break;
 
             // === THIRD SPIKEMARK FIRE ===
-            case 16:
-                handleFiring(17, grabThirdSpikemark);
+            case 12:
+                handleFiring(13, grabThirdSpikemark);
                 break;
 
-            case 17:
-                handleGateClose(18);
+            case 13:
+                handleGateClose(14);
                 break;
 
-            case 18:
-                handleIntakeDelay(19);
+            case 14:
+                handleIntakeDelay(15);
                 break;
 
             // === THIRD SPIKEMARK ===
-            case 19:
-                handlePickupWait(20, scoreThirdSpikemark, intakeTimer, intakeTime);
+            case 15:
+                handlePickupWait(16, scoreThirdSpikemark, intakeTimer, intakeTime);
                 break;
 
-            case 20:
+            case 16:
                 if (shooterGateTimer.seconds() > shooterGateOpenTime) {
                     shooter.openGate();
-                    setPathState(21);
+                    setPathState(17);
                 }
                 break;
 
             // === FOURTH PICKUP FIRE ===
-            case 21:
-                handleFiring(22, grabFourthPickup);
+            case 17:
+                handleFiring(18, grabFourthPickup);
                 break;
 
-            case 22:
-                handleGateClose(23);
+            case 18:
+                handleGateClose(19);
                 break;
 
-            case 23:
-                handleIntakeDelay(24);
+            case 19:
+                handleIntakeDelay(20);
                 break;
 
             // === FOURTH PICKUP ===
-            case 24:
-                handlePickupWaitTimed(25, scoreFourthPickup, fourthPickupWaitTime);
+            case 20:
+                handlePickupWaitTimed(21, scoreFourthPickup, fourthPickupWaitTime);
                 break;
 
-            case 25:
+            case 21:
                 if (shooterGateTimer.seconds() > shooterGateOpenTime) {
                     shooter.openGate();
-                    setPathState(26);
+                    setPathState(22);
                 }
                 break;
 
             // === FINAL FIRE + PARK ===
-            case 26:
+            case 22:
                 handleFiring(999, Park);
                 break;
 
@@ -305,7 +280,7 @@ public class Blue18Ball extends OpMode {
                     telemetry,
                     follower.getVelocity().getMagnitude(),
                     follower.getVelocity().getTheta(),
-                    -5,
+                    -7,
                     false
             );
         }

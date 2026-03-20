@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.PoseStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "🟦🟦🟦BlueMasterAuto🟦🟦🟦", group = "Autonomous")
+//@Autonomous(name = "🟦🟦🟦BlueMasterAuto🟦🟦🟦", group = "Autonomous") very sussy auto, do not use
 public class BlueMasterAuto extends OpMode {
 
     private Follower follower;
