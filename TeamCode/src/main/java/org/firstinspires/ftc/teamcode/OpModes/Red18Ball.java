@@ -17,8 +17,8 @@ import org.firstinspires.ftc.teamcode.PoseStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "🟦🟦🟦Blue15BallAuto🟦🟦🟦", group = "Autonomous")
-public class Blue18Ball extends OpMode {
+@Autonomous(name = "🟥🟥🟥Red15BallAuto🟥🟥🟥", group = "Autonomous")
+public class Red18Ball extends OpMode {
 
     private Follower follower;
     private ShooterSubsystem shooter;
@@ -33,20 +33,20 @@ public class Blue18Ball extends OpMode {
     private ElapsedTime intakeTimer;
 
     // --- COORDINATES ---
-    private final Pose startPose = new Pose(23.1422, 118.595, Math.toRadians(140.1586));
-    private final Pose scorePose = new Pose(57.3, 84.3, Math.toRadians(141));
-    private final Pose firstSpikeMarkPose = new Pose(19.5745, 72.3472, Math.toRadians(180));
-    private final Pose secondSpikeMarkPose = new Pose(12, 57.5, Math.toRadians(180));
-    public  static Pose thirdSpikeMarkPose = new Pose(12, 36, Math.toRadians(180));
-    private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
-    private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
-    private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
-    private final Pose gatePose = new Pose(19.5, 62, Math.toRadians(180));
-    public static Pose gatePoseControlPoint = new Pose(35, 50);
-    public static Pose secondControlPoint = new Pose(65, 65);
-    public static Pose returnSecondControlPoint = new Pose(33, 50);
-    public static Pose thirdControlPoint = new Pose(65, 28);
-    public static Pose returnThirdControlPoint = new Pose(33, 28);
+    private final Pose startPose = new Pose(125.3233, 115.5557, Math.toRadians(37.8449));
+    private final Pose scorePose = new Pose(90, 84.3, Math.toRadians(29));
+    private final Pose firstSpikeMarkPose = new Pose(127.4342, 70, Math.toRadians(0));
+    private final Pose secondSpikeMarkPose = new Pose(136, 54, Math.toRadians(-5));
+    private final Pose thirdSpikeMarkPose = new Pose(135, 30.3274, Math.toRadians(0));
+    private final Pose setUpForthPickupPose = new Pose(136.3332, 54, Math.toRadians(-90));
+    private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-85));
+    private final Pose endPose = new Pose(118, 66, Math.toRadians(0));
+    public static Pose gatePose = new Pose(127, 62, Math.toRadians(0));
+    public static Pose gatePoseControlPoint = new Pose(110, 50);
+    public static Pose secondControlPoint = new Pose(80, 62);
+    public static Pose returnSecondControlPoint = new Pose(110, 55);
+    public static Pose thirdControlPoint = new Pose(80, 38);
+    public static Pose returnThirdControlPoint = new Pose(110, 36);
 
     public static double shootTime = .5;
     public static double shooterGateOpenTime = .3;
@@ -54,8 +54,8 @@ public class Blue18Ball extends OpMode {
     public static double firstSpikeWaitTime = 0.8;
     public static double gateWaitTime = 1;
     public static double fourthPickupWaitTime = 4;
-    public static double fourthPickupSlowdownPoint = 0.9; // 90% of path
-    public static double fourthPickupSlowSpeed = 0.5; // 50% speed
+    public static double fourthPickupSlowdownPoint = 0.9;
+    public static double fourthPickupSlowSpeed = 0.5;
 
     private boolean readyToFire = false;
     private boolean arrivedAtPickup = false;
@@ -177,7 +177,7 @@ public class Blue18Ball extends OpMode {
                 handlePickupWait(10, secondGateOpen, intakeTimer, intakeTime);
                 break;
 
-            case 10: // wait at gate, then drive to score
+            case 10:
                 handlePickupWait(11, scoreSecondSpikemark, gateTimer, gateWaitTime);
                 break;
 
@@ -283,7 +283,7 @@ public class Blue18Ball extends OpMode {
                     telemetry,
                     follower.getVelocity().getMagnitude(),
                     follower.getVelocity().getTheta(),
-                    -4,
+                    -5,
                     false
             );
         }
