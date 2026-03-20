@@ -148,7 +148,6 @@ public class TeleOpBlue extends LinearOpMode {
 
     private void handleNavButtons() {
         if (gamepad1.share) startNav(B_SHOOT_1_X, B_SHOOT_1_Y, B_SHOOT_1_H);
-        if (gamepad1.right_stick_button && !gamepad1.left_stick_button) startNav(B_PARK_X, B_PARK_Y, B_PARK_H);
         if (gamepad1.dpad_left) shooter.disableFlywheels();
         if (gamepad1.dpad_right) shooter.enableFlywheels();
     }

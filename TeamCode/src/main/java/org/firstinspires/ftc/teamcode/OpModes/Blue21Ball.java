@@ -41,8 +41,8 @@ public class Blue21Ball extends OpMode {
     private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
     private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
-    private final Pose gatePose = new Pose(14, 57, Math.toRadians(149.794));
-    private final Pose secondControlPoint = new Pose(65, 55);
+    private final Pose gatePose = new Pose(13.8744, 56.8, Math.toRadians(148.4346));
+    private final Pose secondControlPoint = new Pose(65, 65);
     private final Pose returnSecondControlPoint = new Pose(43, 50);
     private final Pose thirdControlPoint = new Pose(65, 26);
     private final Pose returnThirdControlPoint = new Pose(43, 26);
@@ -248,7 +248,7 @@ public class Blue21Ball extends OpMode {
                     telemetry,
                     follower.getVelocity().getMagnitude(),
                     follower.getVelocity().getTheta(),
-                    0,
+                    -5,
                     false
             );
         }
