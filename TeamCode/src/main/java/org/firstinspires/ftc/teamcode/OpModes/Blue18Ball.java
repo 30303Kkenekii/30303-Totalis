@@ -99,7 +99,7 @@ public class Blue18Ball extends OpMode {
                 .build();
 
         scoreThirdSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(thirdSpikeMarkPose, returnThirdControlPoint, scorePose))
+                .addPath(new BezierLine(thirdSpikeMarkPose, scorePose))
                 .setLinearHeadingInterpolation(thirdSpikeMarkPose.getHeading(), scorePose.getHeading())
                 .build();
 
