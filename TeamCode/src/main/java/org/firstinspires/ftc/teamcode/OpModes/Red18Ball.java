@@ -40,6 +40,8 @@ public class Red18Ball extends OpMode {
     private final Pose thirdSpikeMarkPose = new Pose(135, 30.3274, Math.toRadians(0));
     private final Pose setUpForthPickupPose = new Pose(136.3332, 54, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-85));
+    public static Pose forthPickupWigglePose = new Pose(135, 9, Math.toRadians(-90));
+
     private final Pose endPose = new Pose(118, 66, Math.toRadians(0));
     public static Pose gatePose = new Pose(127, 62, Math.toRadians(0));
     public static Pose gatePoseControlPoint = new Pose(110, 50);
@@ -110,6 +112,8 @@ public class Red18Ball extends OpMode {
                 .setLinearHeadingInterpolation(scorePose.getHeading(), setUpForthPickupPose.getHeading())
                 .addPath(new BezierLine(setUpForthPickupPose, forthPickupPose))
                 .setLinearHeadingInterpolation(setUpForthPickupPose.getHeading(), forthPickupPose.getHeading())
+                .addPath(new BezierLine(forthPickupPose, forthPickupWigglePose)) //jog the corner
+                .addPath(new BezierLine(forthPickupWigglePose, forthPickupPose))
                 .build();
 
         scoreFourthPickup = follower.pathBuilder()
