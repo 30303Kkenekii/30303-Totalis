@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.PoseStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "🟦🟦🟦BlueMasterAuto🟦🟦🟦", group = "Autonomous")
+@Autonomous(name = "🟦🟦🟦Blue18Auto🟦🟦🟦", group = "Autonomous")
 public class Blue18Ball extends OpMode {
 
     private Follower follower;
@@ -36,22 +36,22 @@ public class Blue18Ball extends OpMode {
     private final Pose startPose = new Pose(23.1422, 118.595, Math.toRadians(140.1586));
     private final Pose scorePose = new Pose(57.3, 84.3, Math.toRadians(141));
     private final Pose firstSpikeMarkPose = new Pose(19.5745, 72.3472, Math.toRadians(180));
-    private final Pose secondSpikeMarkPose = new Pose(12, 58, Math.toRadians(180));
+    private final Pose secondSpikeMarkPose = new Pose(12, 57.5, Math.toRadians(180));
     private final Pose thirdSpikeMarkPose = new Pose(12, 36, Math.toRadians(180));
     private final Pose setUpForthPickupPose = new Pose(9.5, 53, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(10, 10, Math.toRadians(-95));
     private final Pose endPose = new Pose(27, 72, Math.toRadians(180));
     private final Pose gatePose = new Pose(13.8744, 56.8, Math.toRadians(148.4346));
-    private final Pose secondControlPoint = new Pose(65, 65);
-    private final Pose returnSecondControlPoint = new Pose(43, 50);
-    private final Pose thirdControlPoint = new Pose(65, 26);
-    private final Pose returnThirdControlPoint = new Pose(43, 26);
+    public Pose secondControlPoint = new Pose(65, 65);
+    public Pose returnSecondControlPoint = new Pose(33, 50);
+    public Pose thirdControlPoint = new Pose(65, 26);
+    public Pose returnThirdControlPoint = new Pose(33, 26);
 
-    public double shootTime = 0.6;
-    public double shooterGateOpenTime = 0.3;
-    public double intakeTime = 0.3;
+    public double shootTime = .5;
+    public double shooterGateOpenTime = .2;
+    public double intakeTime = .2;
     public double firstSpikeWaitTime = 0.8;
-    public double gateWaitTime = 1.0;
+    public double gateWaitTime = 0;
     public double fourthPickupWaitTime = 3.7;
 
     private boolean readyToFire = false;
