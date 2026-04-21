@@ -40,7 +40,7 @@ public class Red18Ball extends OpMode {
     private final Pose thirdSpikeMarkPose = new Pose(135, 30.3274, Math.toRadians(0));
     private final Pose setUpForthPickupPose = new Pose(136.3332, 54, Math.toRadians(-90));
     private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-85));
-    public static Pose forthPickupWigglePose = new Pose(135, 9, Math.toRadians(-90));
+    public static Pose forthPickupWigglePose = new Pose(135, 9, Math.toRadians(-85));
 
     private final Pose endPose = new Pose(118, 66, Math.toRadians(0));
     public static Pose gatePose = new Pose(127, 62, Math.toRadians(0));
@@ -58,6 +58,7 @@ public class Red18Ball extends OpMode {
     public static double fourthPickupWaitTime = 4;
     public static double fourthPickupSlowdownPoint = 0.9;
     public static double fourthPickupSlowSpeed = 0.5;
+
 
     private boolean readyToFire = false;
     private boolean arrivedAtPickup = false;
@@ -269,6 +270,7 @@ public class Red18Ball extends OpMode {
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
         follower.setStartingPose(startPose);
+        ShooterSubsystem.sIntercept += 0;
         buildPaths();
     }
 
@@ -286,7 +288,7 @@ public class Red18Ball extends OpMode {
                     telemetry,
                     follower.getVelocity().getMagnitude(),
                     follower.getVelocity().getTheta(),
-                    -14,
+                    -15,
                     true
             );
         }

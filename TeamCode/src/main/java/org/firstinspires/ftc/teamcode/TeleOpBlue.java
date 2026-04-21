@@ -29,7 +29,7 @@ public class TeleOpBlue extends LinearOpMode {
     enum IntakeState { IDLE, INTAKING, STALLED, EJECTING }
     private IntakeState intakeState = IntakeState.IDLE;
 
-    private Pose safePose = new Pose(0, 0, 0);
+    private Pose safePose = new Pose(136, 8, 180);
     private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false, lastUp = false, lastDown = false;
     private double driverTrim = -5;
     private ElapsedTime firingTimer = new ElapsedTime();

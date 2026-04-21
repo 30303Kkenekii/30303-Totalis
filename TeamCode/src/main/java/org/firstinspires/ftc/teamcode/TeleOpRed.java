@@ -29,14 +29,14 @@ public class TeleOpRed extends LinearOpMode {
     enum IntakeState { IDLE, INTAKING, STALLED, EJECTING }
     private IntakeState intakeState = IntakeState.IDLE;
 
-    private Pose safePose = new Pose(0, 0, 0);
+    private Pose safePose = new Pose(8, 8, 0);
     private boolean lastX = false, lastY = false, lastA = false, lastLB = false, lastRB = false, lastUp = false, lastDown = false;
-    private double driverTrim = -5;
+    private double driverTrim = -14;
     private ElapsedTime firingTimer = new ElapsedTime();
     private boolean firingActive = false;
 
     // Red Coordinates
-    public static double SHOOT_1_X = -35, SHOOT_1_Y = 20, SHOOT_1_H = 130;
+    public static double SHOOT_1_X = 90, SHOOT_1_Y = 84.3, SHOOT_1_H = 29;
     public static double SHOOT_2_X = -45, SHOOT_2_Y = -10, SHOOT_2_H = 180;
     public static double PARK_X = 8, PARK_Y = 8, PARK_H = 0;
 
@@ -64,6 +64,7 @@ public class TeleOpRed extends LinearOpMode {
 
         follower.setStartingPose(PoseStorage.currentPose);
         waitForStart();
+        ShooterSubsystem.sIntercept = 900;
 
         while (opModeIsActive()) {
             follower.update();
