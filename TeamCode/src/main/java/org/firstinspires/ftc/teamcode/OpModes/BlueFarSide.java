@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.OpModes;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
@@ -17,8 +16,8 @@ import org.firstinspires.ftc.teamcode.PoseStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Configurable
-@Autonomous(name = "🟥🟥🟥Red15BallAuto🟥🟥🟥", group = "Autonomous")
-public class Red18Ball extends OpMode {
+@Autonomous(name = "🟦🟦🟦BlueFarAuto🟦🟦🟦", group = "Autonomous")
+public class BlueFarSide extends OpMode {
 
     private Follower follower;
     private ShooterSubsystem shooter;
@@ -29,43 +28,22 @@ public class Red18Ball extends OpMode {
     private ElapsedTime pathTimer;
     private ElapsedTime firingTimer;
     private ElapsedTime shooterGateTimer;
-    private ElapsedTime gateTimer;
-    private ElapsedTime intakeTimer;
+    private ElapsedTime wallPickupTimer;
 
     // --- COORDINATES ---
-    private final Pose startPose = new Pose(125.3233, 115.5557, Math.toRadians(37.8449));
-    private final Pose scorePose = new Pose(90, 84.3, Math.toRadians(29));
-    private final Pose firstSpikeMarkPose = new Pose(127.4342, 70, Math.toRadians(0));
-    private final Pose secondSpikeMarkPose = new Pose(136, 54, Math.toRadians(-0));
-    private final Pose thirdSpikeMarkPose = new Pose(135, 30.3274, Math.toRadians(0));
-    private final Pose setUpForthPickupPose = new Pose(136.3332, 54, Math.toRadians(-90));
-    private final Pose forthPickupPose = new Pose(135, 5, Math.toRadians(-85));
-    public static Pose forthPickupWigglePose = new Pose(135, 9, Math.toRadians(-85));
+    private final Pose startPose = new Pose(56, 9, Math.toRadians(90));
+    private final Pose scorePose = new Pose(55, 14, Math.toRadians(115));
+    private final Pose endPose = new Pose(35, 12, Math.toRadians(180));
+    private final Pose wallPose = new Pose(12, 10, Math.toRadians(180));
 
-    private final Pose endPose = new Pose(118, 66, Math.toRadians(0));
-    public static Pose gatePose = new Pose(127, 62, Math.toRadians(0));
-    public static Pose gatePoseControlPoint = new Pose(110, 50);
-    public static Pose secondControlPoint = new Pose(80, 62);
-    public static Pose returnSecondControlPoint = new Pose(110, 55);
-    public static Pose thirdControlPoint = new Pose(80, 38);
-    public static Pose returnThirdControlPoint = new Pose(110, 36);
-
-    public static double shootTime = .5;
+    public static double shootTime = .9;
     public static double shooterGateOpenTime = .3;
-    public static double intakeTime = .3;
-    public static double firstSpikeWaitTime = 0.8;
-    public static double gateWaitTime = 1;
-    public static double fourthPickupWaitTime = 4;
-    public static double fourthPickupSlowdownPoint = 0.9;
-    public static double fourthPickupSlowSpeed = 0.5;
-
+    public static double wallPickupTime = 1.0;
 
     private boolean readyToFire = false;
     private boolean arrivedAtPickup = false;
 
-    private PathChain scorePreload, grabFirstSpikemark, scoreFirstSpikemark,
-            grabSecondSpikemark, secondGateOpen, scoreSecondSpikemark,
-            grabThirdSpikemark, scoreThirdSpikemark, grabFourthPickup, scoreFourthPickup, Park;
+    private PathChain scorePreload, driveToWall, driveToScore, Park;
 
     public void buildPaths() {
         scorePreload = follower.pathBuilder()
@@ -73,53 +51,14 @@ public class Red18Ball extends OpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading())
                 .build();
 
-        grabFirstSpikemark = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, firstSpikeMarkPose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), firstSpikeMarkPose.getHeading())
+        driveToWall = follower.pathBuilder()
+                .addPath(new BezierLine(scorePose, wallPose))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), wallPose.getHeading())
                 .build();
 
-        scoreFirstSpikemark = follower.pathBuilder()
-                .addPath(new BezierLine(firstSpikeMarkPose, scorePose))
-                .setLinearHeadingInterpolation(firstSpikeMarkPose.getHeading(), scorePose.getHeading())
-                .build();
-
-        grabSecondSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, secondControlPoint, secondSpikeMarkPose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), secondSpikeMarkPose.getHeading())
-                .build();
-
-        secondGateOpen = follower.pathBuilder()
-                .addPath(new BezierCurve(secondSpikeMarkPose, gatePoseControlPoint, gatePose))
-                .setLinearHeadingInterpolation(secondSpikeMarkPose.getHeading(), gatePose.getHeading())
-                .build();
-
-        scoreSecondSpikemark = follower.pathBuilder()
-                .addPath(new BezierLine(gatePose, scorePose))
-                .setLinearHeadingInterpolation(gatePose.getHeading(), scorePose.getHeading())
-                .build();
-
-        grabThirdSpikemark = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, thirdControlPoint, thirdSpikeMarkPose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), thirdSpikeMarkPose.getHeading())
-                .build();
-
-        scoreThirdSpikemark = follower.pathBuilder()
-                .addPath(new BezierLine(thirdSpikeMarkPose, scorePose))
-                .setLinearHeadingInterpolation(thirdSpikeMarkPose.getHeading(), scorePose.getHeading())
-                .build();
-
-        grabFourthPickup = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, secondControlPoint, setUpForthPickupPose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), setUpForthPickupPose.getHeading())
-                .addPath(new BezierLine(setUpForthPickupPose, forthPickupPose))
-                .setLinearHeadingInterpolation(setUpForthPickupPose.getHeading(), forthPickupPose.getHeading())
-                .addPath(new BezierLine(forthPickupPose, forthPickupWigglePose)) //jog the corner
-                .addPath(new BezierLine(forthPickupWigglePose, forthPickupPose))
-                .build();
-
-        scoreFourthPickup = follower.pathBuilder()
-                .addPath(new BezierCurve(forthPickupPose, returnThirdControlPoint, scorePose))
-                .setLinearHeadingInterpolation(forthPickupPose.getHeading(), scorePose.getHeading())
+        driveToScore = follower.pathBuilder()
+                .addPath(new BezierLine(wallPose, scorePose))
+                .setLinearHeadingInterpolation(wallPose.getHeading(), scorePose.getHeading())
                 .build();
 
         Park = follower.pathBuilder()
@@ -140,7 +79,7 @@ public class Red18Ball extends OpMode {
 
             // === PRELOAD FIRE ===
             case 1:
-                handleFiring(2, grabFirstSpikemark);
+                handleFiring(2, driveToWall);
                 break;
 
             case 2:
@@ -151,9 +90,9 @@ public class Red18Ball extends OpMode {
                 handleIntakeDelay(4);
                 break;
 
-            // === FIRST SPIKEMARK ===
+            // === WALL PICKUP 1 ===
             case 4:
-                handlePickupWait(5, scoreFirstSpikemark, intakeTimer, firstSpikeWaitTime);
+                handlePickupWait(5, driveToScore, wallPickupTimer, wallPickupTime);
                 break;
 
             case 5:
@@ -163,9 +102,9 @@ public class Red18Ball extends OpMode {
                 }
                 break;
 
-            // === SECOND SPIKEMARK FIRE ===
+            // === CYCLE 1 FIRE ===
             case 6:
-                handleFiring(7, grabSecondSpikemark);
+                handleFiring(7, driveToWall);
                 break;
 
             case 7:
@@ -176,74 +115,95 @@ public class Red18Ball extends OpMode {
                 handleIntakeDelay(9);
                 break;
 
-            // === SECOND SPIKEMARK → GATE ===
+            // === WALL PICKUP 2 ===
             case 9:
-                handlePickupWait(10, secondGateOpen, intakeTimer, intakeTime);
+                handlePickupWait(10, driveToScore, wallPickupTimer, wallPickupTime);
                 break;
 
             case 10:
-                handlePickupWait(11, scoreSecondSpikemark, gateTimer, gateWaitTime);
-                break;
-
-            case 11:
                 if (shooterGateTimer.seconds() > shooterGateOpenTime) {
                     shooter.openGate();
-                    setPathState(12);
+                    setPathState(11);
                 }
                 break;
 
-            // === THIRD SPIKEMARK FIRE ===
+            // === CYCLE 2 FIRE ===
+            case 11:
+                handleFiring(12, driveToWall);
+                break;
+
             case 12:
-                handleFiring(13, grabThirdSpikemark);
+                handleGateClose(13);
                 break;
 
             case 13:
-                handleGateClose(14);
+                handleIntakeDelay(14);
                 break;
 
+            // === WALL PICKUP 3 ===
             case 14:
-                handleIntakeDelay(15);
+                handlePickupWait(15, driveToScore, wallPickupTimer, wallPickupTime);
                 break;
 
-            // === THIRD SPIKEMARK ===
             case 15:
-                handlePickupWait(16, scoreThirdSpikemark, intakeTimer, intakeTime);
-                break;
-
-            case 16:
                 if (shooterGateTimer.seconds() > shooterGateOpenTime) {
                     shooter.openGate();
-                    setPathState(17);
+                    setPathState(16);
                 }
                 break;
 
-            // === FOURTH PICKUP FIRE ===
+            // === CYCLE 3 FIRE ===
+            case 16:
+                handleFiring(17, driveToWall);
+                break;
+
             case 17:
-                handleFiring(18, grabFourthPickup);
+                handleGateClose(18);
                 break;
 
             case 18:
-                handleGateClose(19);
+                handleIntakeDelay(19);
                 break;
 
+            // === WALL PICKUP 4 ===
             case 19:
-                handleIntakeDelay(20);
+                handlePickupWait(20, driveToScore, wallPickupTimer, wallPickupTime);
                 break;
 
-            // === FOURTH PICKUP ===
             case 20:
-                handlePickupWaitTimed(21, scoreFourthPickup, fourthPickupWaitTime);
-                break;
-
-            case 21:
                 if (shooterGateTimer.seconds() > shooterGateOpenTime) {
                     shooter.openGate();
-                    setPathState(22);
+                    setPathState(21);
+                }
+                break;
+
+            // === CYCLE 4 FIRE ===
+            case 21:
+                handleFiring(22, driveToWall);
+                break;
+
+            case 22:
+                handleGateClose(23);
+                break;
+
+            case 23:
+                handleIntakeDelay(24);
+                break;
+
+            // === WALL PICKUP 5 ===
+            case 24:
+                handlePickupWait(25, driveToScore, wallPickupTimer, wallPickupTime);
+                break;
+
+            case 25:
+                if (shooterGateTimer.seconds() > shooterGateOpenTime) {
+                    shooter.openGate();
+                    setPathState(26);
                 }
                 break;
 
             // === FINAL FIRE + PARK ===
-            case 22:
+            case 26:
                 handleFiring(999, Park);
                 break;
 
@@ -263,14 +223,14 @@ public class Red18Ball extends OpMode {
         pathTimer = new ElapsedTime();
         firingTimer = new ElapsedTime();
         shooterGateTimer = new ElapsedTime();
-        gateTimer = new ElapsedTime();
-        intakeTimer = new ElapsedTime();
+        wallPickupTimer = new ElapsedTime();
         follower = Constants.createFollower(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         leds = new LEDSubsystem(hardwareMap);
         follower.setStartingPose(startPose);
-        ShooterSubsystem.sIntercept += 0;
+        ShooterSubsystem.isFar = true;
+        IntakeSubsystem.ASlowDown = .5;
         buildPaths();
     }
 
@@ -284,11 +244,11 @@ public class Red18Ball extends OpMode {
                     follower.getPose().getX(),
                     follower.getPose().getY(),
                     follower.getPose().getHeading(),
-                    false,
+                    true,
                     telemetry,
                     follower.getVelocity().getMagnitude(),
                     follower.getVelocity().getTheta(),
-                    -15,
+                    -4,
                     false
             );
         }
@@ -343,16 +303,6 @@ public class Red18Ball extends OpMode {
             shooterGateTimer.reset();
             follower.followPath(nextPath, true);
             arrivedAtPickup = false;
-            setPathState(nextState);
-        }
-    }
-
-    private void handlePickupWaitTimed(int nextState, PathChain nextPath, double waitTime) {
-        if (pathTimer.seconds() > waitTime) {
-            intake.intakeOff();
-            shooterGateTimer.reset();
-            follower.setMaxPower(1.0);
-            follower.followPath(nextPath, true);
             setPathState(nextState);
         }
     }

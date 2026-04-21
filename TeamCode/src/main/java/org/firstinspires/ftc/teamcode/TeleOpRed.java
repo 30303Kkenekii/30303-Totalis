@@ -150,7 +150,16 @@ public class TeleOpRed extends LinearOpMode {
         }
     }
 
+    private boolean lastTouchpad = false;
+
     private void handleNavButtons() {
+        if (gamepad1.touchpad && !lastTouchpad) {
+            ShooterSubsystem.isFar = !ShooterSubsystem.isFar;
+            IntakeSubsystem.ASlowDown = ShooterSubsystem.isFar ? 0.5 : 0.9;
+            gamepad1.rumble(0.5, 0.5, 150); // optional haptic feedback on toggle
+        }
+        lastTouchpad = gamepad1.touchpad;
+
         if (gamepad1.share) startNav(SHOOT_1_X, SHOOT_1_Y, SHOOT_1_H);
         if (gamepad1.dpad_left) shooter.disableFlywheels();
         if (gamepad1.dpad_right) shooter.enableFlywheels();

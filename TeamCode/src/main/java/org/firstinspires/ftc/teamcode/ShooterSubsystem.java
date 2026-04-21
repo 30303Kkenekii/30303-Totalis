@@ -26,12 +26,12 @@ public class ShooterSubsystem {
 
     // --- YOUR TUNED LINEAR REGRESSIONS ---
     public static double sSlope = 7.36194;
-    public static double sIntercept = 930; // Updated to 890 per request
+    public static double sIntercept = 930;
 
     public static double hSlope = 0.00340002;
     public static double hIntercept = -0.000519631;
 
-    // --- TUNING SLIDERS (Restored) ---
+    // --- TUNING SLIDERS ---
     public static int tuningRPM = 2000;
     public static double tuningHoodPos = 0.5;
     public static int tuningTurretTicks = -950;
@@ -42,6 +42,12 @@ public class ShooterSubsystem {
     public static int autoRPMOffset = -20;
     public static double rpmTolerance = 40;
     public boolean isFiring = false;
+
+    // --- FAR MODE ---
+    public static boolean isFar = false;
+    public static double farHoodOffset = 0.1;       // added on top of regression result
+    public static double farDriverTrimOffset = 5.0; // added on top of passed driverOffset
+    public static int farRPMOffset = 100;           // added on top of autoRPMOffset
 
     // --- PID ---
     public static double kP = 0.01, kI = 0.0, kD = 0, kF = 0.00057, RAMP_LIMIT = 0.05;
@@ -91,8 +97,11 @@ public class ShooterSubsystem {
         double dist = distToGoal(x, y, blue);
         if (dist < 1) return;
 
+        // apply far trim offset on top of whatever driverOffset was passed in
+        double effectiveDriverOffset = driverOffset + (isFar ? farDriverTrimOffset : 0);
+
         double angleToGoalField = Math.toDegrees(Math.atan2((blue?blueGoalY:redGoalY) - y, (blue?blueGoalX:redGoalX) - x));
-        double targetRelative = (angleToGoalField - Math.toDegrees(heading)) + angleOffset + driverOffset;
+        double targetRelative = (angleToGoalField - Math.toDegrees(heading)) + angleOffset + effectiveDriverOffset;
 
         double currentAngle = totalUnwrappedDegrees;
         double diff = targetRelative - (currentAngle % 360);
@@ -102,12 +111,17 @@ public class ShooterSubsystem {
 
         if (flywheelsEnabled && flywheelsActive) {
             int baseRPM = getRegressionRPM(dist);
-            setFlywheelVelocity(isAuto ? baseRPM + autoRPMOffset : baseRPM, isAuto);
+            int rpmOffset = isAuto ? autoRPMOffset : 0;
+            if (isFar) rpmOffset += farRPMOffset;
+            setFlywheelVelocity(baseRPM + rpmOffset, isAuto);
         } else {
             setFlywheelVelocity(0, isAuto);
         }
 
-        shooterHood.setPosition(getRegressionHood(dist));
+        // apply far hood offset on top of regression result
+        double hood = getRegressionHood(dist);
+        if (isFar) hood = Range.clip(hood + farHoodOffset, hoodMinPos, hoodMaxPos);
+        shooterHood.setPosition(hood);
     }
 
     public void setFlywheelVelocity(double targetRPM, boolean isAuto) {
